@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+
+    <title>SpeedProof v.1</title>
+    <style>
+        body {
+            width: 620px;
+            padding: 10px;
+            background-color: #F5F5F5;
+        }
+        
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            background-color: #708090;
+            color: white;
+            width: 150px;
+        }
+
+        #pasteTextButton{
+            background-color: #4CAF50;
+            visibility: hidden;
+        }
+
+        #appVersion {
+            font-size: 12px; /* Adjust the size as needed */
+            font-weight: bold;
+        }
+        select {
+    padding: 10px;
+    border-radius: 5px;
+    background-color: white;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    width: 150px;
+
+
+  }
+
+  #textToCheck {
+  width: 300px; /* Make the textarea span the full width of the popup */
+  height: 200px; /* Adjust height to provide ample writing space */
+  padding: 10px; /* Add some padding for text inside */
+  border: 2px solid #708090; /* Slate Grey border for a subtle, stylish look */
+  border-radius: 5px; /* Rounded corners for a modern feel */
+  background-color: #FFFFFF; /* White background for the text area */
+  color: #333333; /* Dark grey color for the text, ensuring readability */
+  margin-top: 0px; /* Space above the textarea */
+  box-sizing: border-box; /* Ensures padding does not affect the final size */
+}
+
+  #userCommand {
+  width: 300px; /* Make the textarea span the full width of the popup */
+  padding: 10px; /* Add some padding for text inside */
+  border: 2px solid #708090; /* Slate Grey border for a subtle, stylish look */
+  border-radius: 5px; /* Rounded corners for a modern feel */
+  background-color: #FFFFFF; /* White background for the text area */
+  color: #333333; /* Dark grey color for the text, ensuring readability */
+  margin-top: 0px; /* Space above the textarea */
+  box-sizing: border-box; /* Ensures padding does not affect the final size */
+}
+
+.powered-by {
+    position: absolute;
+    bottom: 10px; /* Adjust as needed */
+    right: 10px; /* Adjust as needed */
+    font-size: 12px; /* Adjust as needed */
+    color: #3b5998; /* Example: A deep blue color */
+}
+
+.chatgpt {
+    font-weight: bold;
+    color: #8b9dc3; /* Example: A lighter shade of blue for contrast */
+}
+
+#appVersion {
+    color: #4682B4; /* Vibrant Blue */
+    font-size: 18px; /* Adjust based on your preference */
+    font-weight: bold;
+    display: block; /* Makes it a block-level element */
+    margin-bottom: 10px; /* Adds space below the header */
+    padding: 5px 0; /* Adds padding above and below the text */
+    font-family: 'Montserrat', sans-serif;
+}
+
+
+    </style>
+</head>
+<body>
+    <span id="appVersion">SpeedProof v.1</span>
+    <p>
+    <table>
+        <tr><td>
+    <textarea id="textToCheck" placeholder="Enter text here to check grammar or translate"></textarea><br>
+    <input type="text" id="userCommand" placeholder="Enter additional command (optional)" />
+
+</td><td valign=top>
+    <button id="checkGrammarButton"><i class="fas fa-spell-check"></i>&nbsp;&nbsp;Check Grammar</button>
+    <button id="summarizeTextButton"><i class="fas fa-compress-alt"></i>&nbsp;&nbsp;Summarize Text</button>
+    <br>
+    
+    <button id="giveAnswerButton"><i class="fas fa-lightbulb"></i>&nbsp;&nbsp;Give Answer</button>
+
+<button id="explainTermButton"><i class="fas fa-book-open"></i>&nbsp;&nbsp;Explain</button>
+
+    
+    <br>
+    <button id="rephraseButton"><i class="fas fa-sync-alt"></i>&nbsp;&nbsp;Rephrase with:</button>
+    <select id="rephraseSelect">
+      <option value="Formal Tone" selected>Formal Tone</option>
+      <option value="Informal Tone">Informal Tone</option>
+      <option value="Objective Tone">Objective Tone</option>
+      <option value="Subjective Tone">Subjective Tone</option>
+      <option value="Humorous Tone">Humorous Tone</option>Sarcastic Tone
+      <option value="Sarcastic Tone">Sarcastic Tone</option>
+      <option value="Lower Level of Language">Lower level of language</option>
+      <option value="Higher Level of Language">Higher level of language</option>
+    </select>
+    <br>
+    <button id="translateButton"><i class="fas fa-language"></i>&nbsp;&nbsp;Translate into: </button>
+    <select id="languageSelect">
+      
+      <option value="Croatian">Croatian</option>
+      <option value="Czech">Czech</option>
+      <option value="Dutch">Dutch</option>
+      <option value="English" selected>English</option>
+      <option value="French">French</option>
+      <option value="German">German</option>
+      <option value="Greek">Greek</option>
+      <option value="Italian">Italian</option>
+      <option value="Portuguese">Portuguese</option>
+      <option value="Russian">Russian</option>
+      <option value="Slovak">Slovak</option>
+      <option value="Spanish">Spanish</option>
+      <option value="Swedish">Swedish</option>      
+      <option value="Ukrainian">Ukrainian</option>
+    </select><br>
+    <button id="pasteTextButton"><i class="fas fa-paste"></i>&nbsp;&nbsp;Paste & Close</button>
+
+</td></tr></table>
+    <p>
+    <div id="copyMessage"></div>
+    <div class="powered-by">
+        Powered by <span class="chatgpt">ChatGPT</span>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

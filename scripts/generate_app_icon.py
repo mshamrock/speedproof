@@ -1,185 +1,162 @@
 #!/usr/bin/env python3
-import math
 import os
 import struct
+import subprocess
 import zlib
 
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+SOURCE_IMAGE = os.path.join(ROOT, "Resources", "SpeedProofIconSource.png")
 ICONSET = os.path.join(ROOT, "Resources", "AppIcon.iconset")
-ICNS_PATH = os.path.join(ROOT, "Resources", "GraceAI.icns")
+ICNS_PATH = os.path.join(ROOT, "Resources", "SpeedProof.icns")
 
 
-def clamp(value, low=0, high=255):
-    return max(low, min(high, int(round(value))))
+def resize_icon(filename, size):
+    output_path = os.path.join(ICONSET, filename)
+    subprocess.run(
+        ["sips", "-z", str(size), str(size), SOURCE_IMAGE, "--out", output_path],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    apply_black_background(output_path)
 
 
-def mix(a, b, t):
-    return a + (b - a) * t
+def png_chunks(data):
+    offset = 8
+    while offset < len(data):
+        length = struct.unpack(">I", data[offset : offset + 4])[0]
+        kind = data[offset + 4 : offset + 8]
+        chunk_data = data[offset + 8 : offset + 8 + length]
+        yield kind, chunk_data
+        offset += length + 12
 
 
-def blend(dst, src):
-    sr, sg, sb, sa = src
-    dr, dg, db, da = dst
-    sa /= 255.0
-    da /= 255.0
-    out_a = sa + da * (1 - sa)
-    if out_a <= 0:
-        return (0, 0, 0, 0)
-    out_r = (sr * sa + dr * da * (1 - sa)) / out_a
-    out_g = (sg * sa + dg * da * (1 - sa)) / out_a
-    out_b = (sb * sa + db * da * (1 - sa)) / out_a
-    return (clamp(out_r), clamp(out_g), clamp(out_b), clamp(out_a * 255))
+def unfilter_scanline(filter_type, scanline, previous, bytes_per_pixel):
+    result = bytearray(scanline)
+    for index, value in enumerate(scanline):
+        left = result[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+        up = previous[index] if previous else 0
+        up_left = previous[index - bytes_per_pixel] if previous and index >= bytes_per_pixel else 0
+
+        if filter_type == 1:
+            result[index] = (value + left) & 0xFF
+        elif filter_type == 2:
+            result[index] = (value + up) & 0xFF
+        elif filter_type == 3:
+            result[index] = (value + ((left + up) // 2)) & 0xFF
+        elif filter_type == 4:
+            predictor = left + up - up_left
+            pa = abs(predictor - left)
+            pb = abs(predictor - up)
+            pc = abs(predictor - up_left)
+            chosen = left if pa <= pb and pa <= pc else (up if pb <= pc else up_left)
+            result[index] = (value + chosen) & 0xFF
+        elif filter_type != 0:
+            raise ValueError(f"Unsupported PNG filter: {filter_type}")
+    return bytes(result)
 
 
-class Canvas:
-    def __init__(self, size):
-        self.size = size
-        self.pixels = [(0, 0, 0, 0)] * (size * size)
+def png_chunk(kind, data):
+    return (
+        struct.pack(">I", len(data))
+        + kind
+        + data
+        + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+    )
 
-    def set(self, x, y, rgba):
-        if 0 <= x < self.size and 0 <= y < self.size:
-            idx = y * self.size + x
-            self.pixels[idx] = blend(self.pixels[idx], rgba)
 
-    def fill_rounded_background(self):
-        n = self.size
-        radius = 0.225 * n
-        for y in range(n):
-            for x in range(n):
-                dx = max(radius - x, 0, x - (n - radius))
-                dy = max(radius - y, 0, y - (n - radius))
-                outside = math.hypot(dx, dy)
-                if outside > radius:
-                    continue
-                edge = radius - outside
-                alpha = 255 if edge > 2 else clamp(edge / 2 * 255)
-                t = (x + y) / (2 * n)
-                r = mix(38, 146, t)
-                g = mix(102, 184, t)
-                b = mix(226, 255, t)
-                self.set(x, y, (r, g, b, alpha))
+def write_rgba_png(path, width, height, pixels):
+    raw = bytearray()
+    row_bytes = width * 4
+    for y in range(height):
+        raw.append(0)
+        raw.extend(pixels[y * row_bytes : (y + 1) * row_bytes])
 
-        self.ellipse(0.12, 0.03, 0.82, 0.55, (255, 255, 255, 46))
-        self.ellipse(0.45, 0.40, 1.16, 1.08, (126, 80, 255, 42))
-        self.ellipse(-0.20, 0.52, 0.42, 1.15, (255, 216, 95, 34))
+    png = b"\x89PNG\r\n\x1a\n"
+    png += png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
+    png += png_chunk(b"IDAT", zlib.compress(bytes(raw), 9))
+    png += png_chunk(b"IEND", b"")
+    with open(path, "wb") as f:
+        f.write(png)
 
-    def ellipse(self, x0, y0, x1, y1, color):
-        n = self.size
-        minx, maxx = int(x0 * n), int(x1 * n)
-        miny, maxy = int(y0 * n), int(y1 * n)
-        cx, cy = (x0 + x1) * n / 2, (y0 + y1) * n / 2
-        rx, ry = max(1, (x1 - x0) * n / 2), max(1, (y1 - y0) * n / 2)
-        for y in range(miny, maxy + 1):
-            for x in range(minx, maxx + 1):
-                d = math.sqrt(((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2)
-                if d <= 1.04:
-                    edge = max(0, min(1, (1.04 - d) / 0.04))
-                    rgba = color[:3] + (clamp(color[3] * edge),)
-                    self.set(x, y, rgba)
 
-    def rounded_rect(self, x0, y0, x1, y1, r, color):
-        n = self.size
-        minx, maxx = int(x0 * n), int(x1 * n)
-        miny, maxy = int(y0 * n), int(y1 * n)
-        radius = r * n
-        for y in range(miny, maxy + 1):
-            for x in range(minx, maxx + 1):
-                px = min(max(x, x0 * n + radius), x1 * n - radius)
-                py = min(max(y, y0 * n + radius), y1 * n - radius)
-                d = math.hypot(x - px, y - py)
-                if d <= radius + 1.5:
-                    edge = 1 if d <= radius else max(0, 1 - (d - radius) / 1.5)
-                    rgba = color[:3] + (clamp(color[3] * edge),)
-                    self.set(x, y, rgba)
+def apply_black_background(path):
+    with open(path, "rb") as f:
+        data = f.read()
 
-    def line(self, x0, y0, x1, y1, width, color):
-        n = self.size
-        ax, ay = x0 * n, y0 * n
-        bx, by = x1 * n, y1 * n
-        minx, maxx = int(min(ax, bx) - width * n), int(max(ax, bx) + width * n)
-        miny, maxy = int(min(ay, by) - width * n), int(max(ay, by) + width * n)
-        vx, vy = bx - ax, by - ay
-        denom = vx * vx + vy * vy or 1
-        radius = width * n / 2
-        for y in range(miny, maxy + 1):
-            for x in range(minx, maxx + 1):
-                t = max(0, min(1, ((x - ax) * vx + (y - ay) * vy) / denom))
-                px, py = ax + t * vx, ay + t * vy
-                d = math.hypot(x - px, y - py)
-                if d <= radius + 1:
-                    edge = 1 if d <= radius else max(0, 1 - (d - radius))
-                    rgba = color[:3] + (clamp(color[3] * edge),)
-                    self.set(x, y, rgba)
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError(f"Not a PNG: {path}")
 
-    def draw_icon(self):
-        self.fill_rounded_background()
+    width = height = color_type = interlace = None
+    idat = bytearray()
+    for kind, chunk_data in png_chunks(data):
+        if kind == b"IHDR":
+            width, height, bit_depth, color_type, _, _, interlace = struct.unpack(">IIBBBBB", chunk_data)
+            if bit_depth != 8 or interlace != 0 or color_type not in (2, 6):
+                raise ValueError(f"Unsupported PNG format: {path}")
+        elif kind == b"IDAT":
+            idat.extend(chunk_data)
 
-        # Soft glass card behind the portrait.
-        self.rounded_rect(0.18, 0.15, 0.82, 0.88, 0.12, (255, 255, 255, 46))
-        self.rounded_rect(0.20, 0.17, 0.80, 0.86, 0.10, (255, 255, 255, 22))
+    channels = 4 if color_type == 6 else 3
+    row_bytes = width * channels
+    decompressed = zlib.decompress(bytes(idat))
+    pixels = bytearray(width * height * 4)
+    previous = None
+    source_offset = 0
+    target_offset = 0
+    for y in range(height):
+        filter_type = decompressed[source_offset]
+        source_offset += 1
+        scanline = decompressed[source_offset : source_offset + row_bytes]
+        source_offset += row_bytes
+        row = unfilter_scanline(filter_type, scanline, previous, channels)
+        previous = row
 
-        # Hair silhouette.
-        self.ellipse(0.25, 0.18, 0.75, 0.78, (35, 38, 72, 235))
-        self.ellipse(0.18, 0.34, 0.47, 0.86, (27, 31, 61, 230))
-        self.ellipse(0.53, 0.34, 0.82, 0.86, (27, 31, 61, 230))
-        self.ellipse(0.27, 0.16, 0.58, 0.43, (52, 57, 99, 210))
+        for x in range(width):
+            src = x * channels
+            r = row[src]
+            g = row[src + 1]
+            b = row[src + 2]
 
-        # Neck and shoulders.
-        self.rounded_rect(0.43, 0.58, 0.57, 0.77, 0.04, (238, 184, 156, 255))
-        self.ellipse(0.25, 0.70, 0.75, 0.98, (70, 95, 204, 235))
-        self.ellipse(0.33, 0.72, 0.67, 0.96, (106, 132, 235, 190))
+            # Keep the yellow bolt and its warm glow, remove the dark glass tile.
+            warmth = min(r, g) - b * 0.55
+            yellow_bias = (r + g) / 2 - b
+            if r > 180 and g > 125 and b < 130:
+                mask_alpha = 255
+            elif r > 105 and g > 62 and r > b * 1.18 and g > b * 0.85:
+                mask_alpha = max(0, min(255, int(round((warmth - 28) * 4.2))))
+            elif yellow_bias > 35 and r > 80 and g > 45:
+                mask_alpha = max(0, min(160, int(round((yellow_bias - 35) * 3.0))))
+            else:
+                mask_alpha = 0
 
-        # Face.
-        self.ellipse(0.32, 0.24, 0.68, 0.65, (248, 204, 178, 255))
-        self.ellipse(0.35, 0.25, 0.65, 0.50, (255, 226, 204, 75))
+            source_alpha = row[src + 3] if channels == 4 else 255
+            effective_alpha = source_alpha * mask_alpha / 255
+            pixels[target_offset : target_offset + 4] = bytes((
+                int(round(row[src] * effective_alpha / 255)),
+                int(round(row[src + 1] * effective_alpha / 255)),
+                int(round(row[src + 2] * effective_alpha / 255)),
+                255,
+            ))
+            target_offset += 4
 
-        # Hair fringe.
-        self.ellipse(0.28, 0.18, 0.56, 0.36, (39, 42, 79, 245))
-        self.ellipse(0.46, 0.18, 0.72, 0.39, (38, 41, 76, 245))
-        self.ellipse(0.29, 0.30, 0.43, 0.55, (31, 35, 66, 220))
-        self.ellipse(0.57, 0.30, 0.71, 0.55, (31, 35, 66, 220))
+    write_rgba_png(path, width, height, pixels)
 
-        # Facial features.
-        self.ellipse(0.39, 0.43, 0.43, 0.46, (25, 29, 48, 245))
-        self.ellipse(0.57, 0.43, 0.61, 0.46, (25, 29, 48, 245))
-        self.line(0.48, 0.45, 0.46, 0.53, 0.010, (185, 123, 112, 115))
-        self.ellipse(0.43, 0.56, 0.57, 0.60, (181, 70, 96, 210))
-        self.ellipse(0.45, 0.55, 0.55, 0.58, (238, 119, 139, 190))
 
-        # Subtle voice waves.
-        self.line(0.70, 0.42, 0.75, 0.37, 0.014, (255, 211, 82, 180))
-        self.line(0.72, 0.50, 0.80, 0.50, 0.014, (255, 211, 82, 170))
-        self.line(0.70, 0.58, 0.75, 0.63, 0.014, (255, 211, 82, 160))
-
-        # Shine.
-        self.line(0.22, 0.14, 0.76, 0.08, 0.018, (255, 255, 255, 72))
-
-    def write_png(self, path):
-        n = self.size
-        raw = bytearray()
-        for y in range(n):
-            raw.append(0)
-            for x in range(n):
-                raw.extend(self.pixels[y * n + x])
-
-        def chunk(kind, data):
-            return (
-                struct.pack(">I", len(data))
-                + kind
-                + data
-                + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
-            )
-
-        png = b"\x89PNG\r\n\x1a\n"
-        png += chunk(b"IHDR", struct.pack(">IIBBBBB", n, n, 8, 6, 0, 0, 0))
-        png += chunk(b"IDAT", zlib.compress(bytes(raw), 9))
-        png += chunk(b"IEND", b"")
-        with open(path, "wb") as f:
-            f.write(png)
+def write_icns():
+    subprocess.run(
+        ["iconutil", "-c", "icns", ICONSET, "-o", ICNS_PATH],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 def main():
+    if not os.path.exists(SOURCE_IMAGE):
+        raise FileNotFoundError(f"Missing icon source: {SOURCE_IMAGE}")
+
     os.makedirs(ICONSET, exist_ok=True)
     sizes = {
         "icon_16x16.png": 16,
@@ -194,33 +171,9 @@ def main():
         "icon_512x512@2x.png": 1024,
     }
     for filename, size in sizes.items():
-        canvas = Canvas(size)
-        canvas.draw_icon()
-        canvas.write_png(os.path.join(ICONSET, filename))
+        resize_icon(filename, size)
 
-    icns_sources = [
-        ("icp4", "icon_16x16.png"),
-        ("icp5", "icon_32x32.png"),
-        ("icp6", "icon_32x32@2x.png"),
-        ("ic07", "icon_128x128.png"),
-        ("ic08", "icon_128x128@2x.png"),
-        ("ic09", "icon_256x256@2x.png"),
-        ("ic10", "icon_512x512@2x.png"),
-    ]
-    chunks = []
-    total_size = 8
-    for chunk_type, filename in icns_sources:
-        with open(os.path.join(ICONSET, filename), "rb") as f:
-            data = f.read()
-        chunk = chunk_type.encode("ascii") + struct.pack(">I", len(data) + 8) + data
-        chunks.append(chunk)
-        total_size += len(chunk)
-
-    with open(ICNS_PATH, "wb") as f:
-        f.write(b"icns")
-        f.write(struct.pack(">I", total_size))
-        for chunk in chunks:
-            f.write(chunk)
+    write_icns()
 
 
 if __name__ == "__main__":

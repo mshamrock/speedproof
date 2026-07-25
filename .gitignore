@@ -1,2 +1,26 @@
+# Build output
 .build/
+DerivedData/
+
+# Xcode user state
+*.xcuserstate
+xcuserdata/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+openai_api_key.txt
+
+# macOS and editor metadata
 .DS_Store
+*.swp
+*.swo
+*~
+
+# Python tooling used by the icon generator
+__pycache__/
+*.pyc
+.venv/

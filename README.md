@@ -1,67 +1,118 @@
-# Grace AI
+# SpeedProof
 
-Grace AI is a native macOS clipboard helper built with AppKit.
+SpeedProof is a native macOS utility that improves and translates text directly
+from the clipboard.
 
-When the app is running, it watches the clipboard:
+It can work quietly in the background after a regular copy, or process the
+currently selected text with `Option+C`. The app sends eligible text directly
+to the OpenAI Responses API using the API key supplied by the user.
 
-1. If copied text is in Russian, it translates it to English.
-2. If copied text is in English, it fixes spelling, punctuation, grammar, and phrasing.
+## Highlights
 
-The app shows:
+- Native AppKit interface for macOS 13 and newer.
+- Background clipboard processing without stealing focus.
+- `Option+C` copies the current selection, opens SpeedProof, processes the
+  text, and places the result back on the clipboard.
+- Manual text input with automatic processing after a short pause.
+- Configurable source and target languages.
+- Tone presets: Neutral, Polite, Shorter, and Confident.
+- Automatic Polite tone for text that looks like a message or email.
+- Error Review and Diff View for English cleanup.
+- Local processing history and menu bar controls.
+- Local checks that pause processing for likely credentials, private keys,
+  tokens, encoded secrets, and payment card numbers.
+- Standalone email addresses are ignored.
 
-- the original text;
-- the transformed text;
-- a large button to copy the final text back to the clipboard.
-- a manual input fallback if the clipboard is empty.
+## Requirements
 
-## Build
+- macOS 13 Ventura or newer
+- Xcode Command Line Tools
+- An OpenAI API key
+
+Install the command line tools if needed:
 
 ```bash
-./scripts/build_app.sh
+xcode-select --install
 ```
 
-The build script creates:
+## Build and run
+
+```bash
+git clone https://github.com/mshamrock/graceai.git
+cd graceai
+./scripts/build_app.sh
+open ".build/SpeedProof.app"
+```
+
+The build script compiles the Objective-C/AppKit source, creates the application
+bundle at `.build/SpeedProof.app`, copies the icon and metadata, and signs the
+local build. A personal signing identity named `SpeedProof Local` is used when
+available; otherwise the app receives an ad hoc signature.
+
+Because local builds are not notarized, macOS may ask you to confirm that you
+want to open the app.
+
+## Configure the API key
+
+Open SpeedProof and select the settings button in the top-right corner. Add your
+OpenAI API key and select a model.
+
+The app stores the key in:
 
 ```text
-.build/Grace AI.app
+~/Library/Application Support/SpeedProof/openai_api_key.txt
 ```
 
-## How it works
-
-The app polls the macOS clipboard for new text and decides the mode locally:
-
-- Cyrillic text -> translate to English
-- Latin text -> polish English
-
-The transformation itself is sent directly to the OpenAI Responses API from inside the app.
-
-## OpenAI API key
-
-The easiest way now is to open the app and click the gear icon in the top-right corner. Grace AI will save your key in its local app settings on this Mac, so there are no repeated Keychain access prompts.
-
-You can still provide the key through the environment if you prefer:
+The file is created with permissions that restrict access to the current macOS
+user. You may use an environment variable instead:
 
 ```bash
 export OPENAI_API_KEY='your_api_key_here'
 ```
 
-If you want the key to persist for future terminal sessions:
+Never commit an API key, paste one into an issue, or include one in logs.
+
+## Optional model override
+
+The model can be selected in Settings or overridden for a local run:
 
 ```bash
-echo 'export OPENAI_API_KEY="your_api_key_here"' >> ~/.zshrc
-source ~/.zshrc
+export SPEEDPROOF_OPENAI_MODEL='your-model-id'
 ```
 
-## Optional overrides
+## How clipboard processing works
 
-Override the model used for text transformation:
+1. SpeedProof watches for new plain text on the macOS clipboard.
+2. Obvious standalone email addresses and likely sensitive values are stopped
+   locally.
+3. Eligible text is sent to the OpenAI Responses API with the selected
+   language and tone instructions.
+4. The original text, final text, review, diff, timing, and recent items remain
+   available in the local app interface.
 
-```bash
-export GRACE_AI_OPENAI_MODEL='gpt-5.4-nano'
+The sensitive-text checks are safeguards, not a guarantee. Review the
+[privacy notes](PRIVACY.md) before enabling background clipboard processing.
+
+## Project structure
+
+```text
+Sources/SpeedProof/main.m       AppKit app and OpenAI integration
+Resources/Info.plist            Application bundle metadata
+Resources/SpeedProof.icns       Application icon
+scripts/build_app.sh            Local build and signing
+scripts/generate_app_icon.py    Icon asset generator
 ```
 
-## Notes
+SpeedProof intentionally has no backend server. OpenAI requests are sent
+directly from the Mac using the user's API key.
 
-- The app measures processing time and shows it in the status block.
-- If the copied text is neither Russian nor English, it is skipped.
-- The in-app API key is stored locally in Grace AI app settings for a smoother desktop experience.
+## Contributing
+
+Bug reports and focused pull requests are welcome. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) before submitting changes. Please report
+security issues through the process in [SECURITY.md](SECURITY.md), not in a
+public issue.
+
+## License
+
+SpeedProof is available under the [MIT License](LICENSE).

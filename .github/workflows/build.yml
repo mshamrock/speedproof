@@ -1,0 +1,28 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate metadata
+        run: plutil -lint Resources/Info.plist
+
+      - name: Build SpeedProof
+        run: ./scripts/build_app.sh
+
+      - name: Verify application bundle
+        run: |
+          test -x ".build/SpeedProof.app/Contents/MacOS/SpeedProof"
+          codesign --verify --deep --strict ".build/SpeedProof.app"

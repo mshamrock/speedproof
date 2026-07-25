@@ -3,22 +3,22 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleDisplayName</key>
-    <string>Grace AI</string>
+    <string>SpeedProof</string>
     <key>CFBundleExecutable</key>
-    <string>GraceAI</string>
+    <string>SpeedProof</string>
     <key>CFBundleIdentifier</key>
-    <string>ai.grace.desktop</string>
+    <string>com.mshamrock.speedproof</string>
     <key>CFBundleIconFile</key>
-    <string>GraceAI</string>
+    <string>SpeedProof</string>
     <key>CFBundleName</key>
-    <string>Grace AI</string>
+    <string>SpeedProof</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
     <string>0.1.0</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>13.0</string>
+    <string>2</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
 </dict>
 </plist>

@@ -38,8 +38,8 @@ xcode-select --install
 ## Build and run
 
 ```bash
-git clone https://github.com/mshamrock/graceai.git
-cd graceai
+git clone https://github.com/mshamrock/speedproof.git
+cd speedproof
 ./scripts/build_app.sh
 open ".build/SpeedProof.app"
 ```

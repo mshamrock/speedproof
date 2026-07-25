@@ -53,8 +53,8 @@ const getSelectedTextButton = document.getElementById('getSelectedTextButton');
         var textToCheck = document.getElementById('textToCheck').value;
         var userCommand = document.getElementById('userCommand').value;
 
-        
-        
+
+
 
         if (textToCheck.length === 0) {
             alert("Please enter some text to check.");
@@ -83,8 +83,8 @@ const getSelectedTextButton = document.getElementById('getSelectedTextButton');
 
     summarizeTextButton.addEventListener('click', function() {
         var textToCheck = document.getElementById('textToCheck').value;
-        
-        
+
+
 
         if (textToCheck.length === 0) {
             alert("Please enter some text to check.");
@@ -114,8 +114,8 @@ const getSelectedTextButton = document.getElementById('getSelectedTextButton');
 
 explainTermButton.addEventListener('click', function() {
         var textToCheck = document.getElementById('textToCheck').value;
-        
-        
+
+
 
         if (textToCheck.length === 0) {
             alert("Please enter some text to check.");

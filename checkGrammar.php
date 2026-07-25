@@ -5,7 +5,7 @@ header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header('Content-Type: application/json');
 
-$curl = curl_init();    
+$curl = curl_init();
 $API_KEY = getenv("OPENAI_API_KEY");
 
 if (!$API_KEY) {
@@ -35,7 +35,7 @@ $content = "Check grammar of the text and return only the corrected result witho
 
 $data = array( // cUrl data
     "model"=> "gpt-4",
-    "messages" => array(array("role" => "user", "content" => $content)), 
+    "messages" => array(array("role" => "user", "content" => $content)),
     "temperature" => 0.5,
     "max_tokens" => 100,
     "top_p" => 1,

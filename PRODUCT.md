@@ -45,6 +45,7 @@ after a short pause.
 - Clipboard watching and manual input.
 - OpenAI Responses API integration using a user-provided key.
 - Configurable translation language pair and interface language.
+- Persistent Electric, Graphite, Arctic, and Evergreen color schemes.
 - Neutral, Polite, Shorter, and Confident tone presets.
 - Automatic Polite tone for likely messages and direct requests.
 - Error Review and Diff View for English cleanup.

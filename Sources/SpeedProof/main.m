@@ -5,6 +5,13 @@
 static const UInt32 SpeedProofHotKeyID = 1;
 static const OSType SpeedProofHotKeySignature = 'SPHK';
 
+static NSColor *SPColor(NSUInteger hex) {
+    return [NSColor colorWithSRGBRed:((hex >> 16) & 0xFF) / 255.0
+                              green:((hex >> 8) & 0xFF) / 255.0
+                               blue:(hex & 0xFF) / 255.0
+                              alpha:1.0];
+}
+
 @interface RoundedView : NSView
 - (instancetype)initWithColor:(NSColor *)color radius:(CGFloat)radius;
 @property(nonatomic, strong) NSColor *fillColor;
@@ -117,15 +124,31 @@ static const OSType SpeedProofHotKeySignature = 'SPHK';
 @end
 
 @interface SpeedProofLogoView : NSView
+- (void)applyTextColor:(NSColor *)textColor accentColor:(NSColor *)accentColor boltColor:(NSColor *)boltColor;
 @end
 
-@implementation SpeedProofLogoView
+@implementation SpeedProofLogoView {
+    NSColor *_logoTextColor;
+    NSColor *_logoAccentColor;
+    NSColor *_boltColor;
+}
+
 - (instancetype)init {
     self = [super initWithFrame:NSZeroRect];
     if (self) {
         self.translatesAutoresizingMaskIntoConstraints = NO;
+        _logoTextColor = SPColor(0xF7F4EB);
+        _logoAccentColor = SPColor(0x789BFF);
+        _boltColor = SPColor(0xFFCA2E);
     }
     return self;
+}
+
+- (void)applyTextColor:(NSColor *)textColor accentColor:(NSColor *)accentColor boltColor:(NSColor *)boltColor {
+    _logoTextColor = textColor;
+    _logoAccentColor = accentColor;
+    _boltColor = boltColor;
+    [self setNeedsDisplay:YES];
 }
 
 - (NSSize)intrinsicContentSize {
@@ -148,25 +171,25 @@ static const OSType SpeedProofHotKeySignature = 'SPHK';
     [bolt closePath];
 
     NSShadow *boltShadow = [NSShadow new];
-    boltShadow.shadowColor = [NSColor colorWithRed:1.0 green:0.75 blue:0.10 alpha:0.42];
+    boltShadow.shadowColor = [_boltColor colorWithAlphaComponent:0.42];
     boltShadow.shadowBlurRadius = 10;
     boltShadow.shadowOffset = NSMakeSize(0, -1);
     [NSGraphicsContext saveGraphicsState];
     [boltShadow set];
-    [[NSColor colorWithRed:1.0 green:0.79 blue:0.13 alpha:1] setFill];
+    [_boltColor setFill];
     [bolt fill];
     [NSGraphicsContext restoreGraphicsState];
 
     NSMutableAttributedString *logo = [[NSMutableAttributedString alloc] initWithString:@"Speed"];
     [logo addAttributes:@{
         NSFontAttributeName: [NSFont fontWithName:@"Georgia" size:31] ?: [NSFont systemFontOfSize:31 weight:NSFontWeightSemibold],
-        NSForegroundColorAttributeName: [NSColor colorWithRed:0.97 green:0.96 blue:0.92 alpha:1]
+        NSForegroundColorAttributeName: _logoTextColor
     } range:NSMakeRange(0, logo.length)];
 
     NSAttributedString *accent = [[NSAttributedString alloc] initWithString:@"Proof"
                                                                  attributes:@{
         NSFontAttributeName: [NSFont fontWithName:@"Georgia Italic" size:31] ?: [NSFont systemFontOfSize:31 weight:NSFontWeightMedium],
-        NSForegroundColorAttributeName: [NSColor colorWithRed:0.48 green:0.62 blue:1.0 alpha:1]
+        NSForegroundColorAttributeName: _logoAccentColor
     }];
     [logo appendAttributedString:accent];
 
@@ -185,6 +208,7 @@ static const OSType SpeedProofHotKeySignature = 'SPHK';
 @interface LightningRailView : NSView
 - (void)setProcessing:(BOOL)processing;
 - (void)flashCompletion;
+- (void)applyTrackColor:(NSColor *)trackColor nodeColor:(NSColor *)nodeColor accentColor:(NSColor *)accentColor;
 @end
 
 @implementation LightningRailView {
@@ -193,6 +217,9 @@ static const OSType SpeedProofHotKeySignature = 'SPHK';
     CALayer *_leftNode;
     CALayer *_rightNode;
     BOOL _processing;
+    NSColor *_trackColor;
+    NSColor *_nodeColor;
+    NSColor *_railAccentColor;
 }
 
 - (instancetype)initWithFrame:(NSRect)frameRect {
@@ -200,16 +227,19 @@ static const OSType SpeedProofHotKeySignature = 'SPHK';
     if (self) {
         self.wantsLayer = YES;
         self.layer.masksToBounds = YES;
+        _trackColor = SPColor(0x3B4A61);
+        _nodeColor = SPColor(0x59739E);
+        _railAccentColor = SPColor(0xFFCC2E);
 
         _trackLayer = [CALayer layer];
-        _trackLayer.backgroundColor = [NSColor colorWithRed:0.23 green:0.29 blue:0.38 alpha:0.75].CGColor;
+        _trackLayer.backgroundColor = [_trackColor colorWithAlphaComponent:0.75].CGColor;
         _trackLayer.cornerRadius = 1;
 
         _beamLayer = [CALayer layer];
         _beamLayer.bounds = CGRectMake(0, 0, 42, 2);
-        _beamLayer.backgroundColor = [NSColor colorWithRed:1.0 green:0.80 blue:0.18 alpha:1].CGColor;
+        _beamLayer.backgroundColor = _railAccentColor.CGColor;
         _beamLayer.cornerRadius = 1;
-        _beamLayer.shadowColor = [NSColor colorWithRed:1.0 green:0.76 blue:0.10 alpha:1].CGColor;
+        _beamLayer.shadowColor = _railAccentColor.CGColor;
         _beamLayer.shadowOpacity = 0.95;
         _beamLayer.shadowRadius = 8;
         _beamLayer.shadowOffset = CGSizeZero;
@@ -220,7 +250,7 @@ static const OSType SpeedProofHotKeySignature = 'SPHK';
         for (CALayer *node in @[_leftNode, _rightNode]) {
             node.bounds = CGRectMake(0, 0, 6, 6);
             node.cornerRadius = 3;
-            node.backgroundColor = [NSColor colorWithRed:0.35 green:0.45 blue:0.62 alpha:1].CGColor;
+            node.backgroundColor = _nodeColor.CGColor;
         }
 
         [self.layer addSublayer:_trackLayer];
@@ -243,19 +273,30 @@ static const OSType SpeedProofHotKeySignature = 'SPHK';
     }
 }
 
-- (void)setProcessing:(BOOL)processing {
-    if (_processing == processing) {
-        return;
+- (void)applyTrackColor:(NSColor *)trackColor nodeColor:(NSColor *)nodeColor accentColor:(NSColor *)accentColor {
+    _trackColor = trackColor;
+    _nodeColor = nodeColor;
+    _railAccentColor = accentColor;
+    _beamLayer.backgroundColor = accentColor.CGColor;
+    _beamLayer.shadowColor = accentColor.CGColor;
+    [self setProcessing:_processing];
+    if (!_processing) {
+        _trackLayer.backgroundColor = [trackColor colorWithAlphaComponent:0.75].CGColor;
+        _leftNode.backgroundColor = nodeColor.CGColor;
+        _rightNode.backgroundColor = nodeColor.CGColor;
     }
+}
+
+- (void)setProcessing:(BOOL)processing {
     _processing = processing;
     [_beamLayer removeAllAnimations];
     [_rightNode removeAllAnimations];
 
     if (processing) {
         _beamLayer.opacity = 1;
-        _trackLayer.backgroundColor = [NSColor colorWithRed:0.33 green:0.34 blue:0.22 alpha:0.85].CGColor;
-        _leftNode.backgroundColor = [NSColor colorWithRed:1.0 green:0.80 blue:0.18 alpha:1].CGColor;
-        _rightNode.backgroundColor = [NSColor colorWithRed:0.35 green:0.45 blue:0.62 alpha:1].CGColor;
+        _trackLayer.backgroundColor = [[_trackColor blendedColorWithFraction:0.24 ofColor:_railAccentColor] colorWithAlphaComponent:0.85].CGColor;
+        _leftNode.backgroundColor = _railAccentColor.CGColor;
+        _rightNode.backgroundColor = _nodeColor.CGColor;
 
         CABasicAnimation *travel = [CABasicAnimation animationWithKeyPath:@"position.x"];
         CGFloat beamHalfWidth = CGRectGetWidth(_beamLayer.bounds) / 2.0;
@@ -270,14 +311,15 @@ static const OSType SpeedProofHotKeySignature = 'SPHK';
         [_beamLayer addAnimation:travel forKey:@"travel"];
     } else {
         _beamLayer.opacity = 0;
-        _trackLayer.backgroundColor = [NSColor colorWithRed:0.23 green:0.29 blue:0.38 alpha:0.75].CGColor;
-        _leftNode.backgroundColor = [NSColor colorWithRed:0.35 green:0.45 blue:0.62 alpha:1].CGColor;
+        _trackLayer.backgroundColor = [_trackColor colorWithAlphaComponent:0.75].CGColor;
+        _leftNode.backgroundColor = _nodeColor.CGColor;
+        _rightNode.backgroundColor = _nodeColor.CGColor;
     }
 }
 
 - (void)flashCompletion {
-    _rightNode.backgroundColor = [NSColor colorWithRed:1.0 green:0.80 blue:0.18 alpha:1].CGColor;
-    _rightNode.shadowColor = [NSColor colorWithRed:1.0 green:0.77 blue:0.10 alpha:1].CGColor;
+    _rightNode.backgroundColor = _railAccentColor.CGColor;
+    _rightNode.shadowColor = _railAccentColor.CGColor;
     _rightNode.shadowOpacity = 1;
     _rightNode.shadowRadius = 10;
 
@@ -300,6 +342,11 @@ static const OSType SpeedProofHotKeySignature = 'SPHK';
 - (void)setBoldQuotedText:(BOOL)enabled;
 - (void)setBodyTopSpacing:(CGFloat)spacing;
 - (void)setTitleColor:(NSColor *)color;
+- (void)applyFillColor:(NSColor *)fillColor
+            titleColor:(NSColor *)titleColor
+             bodyColor:(NSColor *)bodyColor
+        insertionColor:(NSColor *)insertionColor
+           borderColor:(NSColor *)borderColor;
 @property(nonatomic, copy) void (^textDidChangeHandler)(NSString *text);
 @end
 
@@ -411,6 +458,25 @@ static const OSType SpeedProofHotKeySignature = 'SPHK';
 
 - (void)setTitleColor:(NSColor *)color {
     _titleLabel.textColor = color;
+}
+
+- (void)applyFillColor:(NSColor *)fillColor
+            titleColor:(NSColor *)titleColor
+             bodyColor:(NSColor *)bodyColor
+        insertionColor:(NSColor *)insertionColor
+           borderColor:(NSColor *)borderColor {
+    self.fillColor = fillColor;
+    [self setStrokeColor:borderColor width:0.8];
+    _titleLabel.textColor = titleColor;
+    _textView.textColor = bodyColor;
+    _textView.insertionPointColor = insertionColor;
+    _textView.typingAttributes = @{
+        NSFontAttributeName: _textView.font ?: [NSFont systemFontOfSize:14.5 weight:NSFontWeightRegular],
+        NSForegroundColorAttributeName: bodyColor
+    };
+    if (_boldQuotedText) {
+        [self setBodyText:self.bodyText];
+    }
 }
 
 - (NSAttributedString *)attributedBodyText:(NSString *)text {
@@ -621,6 +687,11 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 + (NSArray<ToneOption *> *)toneOptions;
 + (ToneOption *)selectedToneOption;
 + (void)setSelectedToneByDisplayName:(NSString *)displayName;
++ (NSArray<NSString *> *)themeNames;
++ (NSString *)selectedThemeName;
++ (void)setSelectedThemeName:(NSString *)themeName;
++ (NSDictionary<NSString *, NSColor *> *)selectedThemePalette;
++ (BOOL)selectedThemeUsesDarkAppearance;
 @end
 
 @implementation AppSettings
@@ -646,6 +717,10 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 
 + (NSString *)toneDefaultsKey {
     return @"SpeedProof.ToneOfVoice";
+}
+
++ (NSString *)themeDefaultsKey {
+    return @"SpeedProof.ColorScheme";
 }
 
 + (NSString *)legacyModelDefaultsKey {
@@ -840,6 +915,90 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     }
     [NSUserDefaults.standardUserDefaults setObject:displayName forKey:[self toneDefaultsKey]];
 }
+
++ (NSArray<NSString *> *)themeNames {
+    return @[@"Electric", @"Graphite", @"Arctic", @"Evergreen"];
+}
+
++ (NSString *)selectedThemeName {
+    NSString *saved = [NSUserDefaults.standardUserDefaults stringForKey:[self themeDefaultsKey]];
+    return [[self themeNames] containsObject:saved] ? saved : @"Electric";
+}
+
++ (void)setSelectedThemeName:(NSString *)themeName {
+    NSString *value = [[self themeNames] containsObject:themeName] ? themeName : @"Electric";
+    [NSUserDefaults.standardUserDefaults setObject:value forKey:[self themeDefaultsKey]];
+}
+
++ (NSDictionary<NSString *, NSColor *> *)selectedThemePalette {
+    NSDictionary<NSString *, NSDictionary<NSString *, NSColor *> *> *palettes = @{
+        @"Electric": @{
+            @"canvas": SPColor(0x090C10),
+            @"surface": SPColor(0x13171E),
+            @"surface2": SPColor(0x0E1116),
+            @"source": SPColor(0x0F1318),
+            @"result": SPColor(0x13161C),
+            @"border": SPColor(0x293341),
+            @"text": SPColor(0xF5F2E9),
+            @"muted": SPColor(0xA0A8B5),
+            @"accent": SPColor(0xFFCA2E),
+            @"accentForeground": SPColor(0x111318),
+            @"secondary": SPColor(0x789BFF),
+            @"selection": SPColor(0x34301B),
+            @"selectionBorder": SPColor(0x7A6B2B)
+        },
+        @"Graphite": @{
+            @"canvas": SPColor(0x161616),
+            @"surface": SPColor(0x242424),
+            @"surface2": SPColor(0x1D1D1D),
+            @"source": SPColor(0x202020),
+            @"result": SPColor(0x272624),
+            @"border": SPColor(0x3D3D3D),
+            @"text": SPColor(0xF2F0EB),
+            @"muted": SPColor(0xABA8A1),
+            @"accent": SPColor(0xE8B44A),
+            @"accentForeground": SPColor(0x17130D),
+            @"secondary": SPColor(0xB9C3D2),
+            @"selection": SPColor(0x3B3220),
+            @"selectionBorder": SPColor(0x77643A)
+        },
+        @"Arctic": @{
+            @"canvas": SPColor(0xE9EDF2),
+            @"surface": SPColor(0xFFFFFF),
+            @"surface2": SPColor(0xF3F5F8),
+            @"source": SPColor(0xFFFFFF),
+            @"result": SPColor(0xF8FAFD),
+            @"border": SPColor(0xC7D0DC),
+            @"text": SPColor(0x17202B),
+            @"muted": SPColor(0x5B6877),
+            @"accent": SPColor(0xE7B126),
+            @"accentForeground": SPColor(0x17130B),
+            @"secondary": SPColor(0x315FD6),
+            @"selection": SPColor(0x253044),
+            @"selectionBorder": SPColor(0x53657E)
+        },
+        @"Evergreen": @{
+            @"canvas": SPColor(0x0C1513),
+            @"surface": SPColor(0x14201D),
+            @"surface2": SPColor(0x101A18),
+            @"source": SPColor(0x121E1B),
+            @"result": SPColor(0x17231F),
+            @"border": SPColor(0x29423A),
+            @"text": SPColor(0xF0F3EA),
+            @"muted": SPColor(0x9BADA5),
+            @"accent": SPColor(0xF3C94F),
+            @"accentForeground": SPColor(0x111712),
+            @"secondary": SPColor(0x6BC8A3),
+            @"selection": SPColor(0x30321D),
+            @"selectionBorder": SPColor(0x6E7540)
+        }
+    };
+    return palettes[[self selectedThemeName]] ?: palettes[@"Electric"];
+}
+
++ (BOOL)selectedThemeUsesDarkAppearance {
+    return ![[self selectedThemeName] isEqualToString:@"Arctic"];
+}
 @end
 
 @interface ClipboardWindowController : NSObject <NSWindowDelegate>
@@ -865,6 +1024,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 - (void)showCopiedFeedback;
 - (void)refreshLanguageControls;
 - (void)refreshToneControl;
+- (void)applyTheme;
 - (NSString *)sourceText;
 - (void)refreshCopyButton;
 - (NSWindow *)window;
@@ -872,6 +1032,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 
 @implementation ClipboardWindowController {
     NSWindow *_window;
+    NSVisualEffectView *_backgroundView;
     SpeedProofLogoView *_titleLabel;
     NSTextField *_subtitleLabel;
     RoundedView *_connectionPill;
@@ -915,27 +1076,167 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 }
 
 - (NSColor *)accentColor {
-    return [NSColor colorWithRed:1.0 green:0.78 blue:0.18 alpha:1];
+    return [AppSettings selectedThemePalette][@"accent"];
 }
 
 - (NSColor *)surfaceColor {
-    return [NSColor colorWithRed:0.075 green:0.092 blue:0.118 alpha:1];
+    return [AppSettings selectedThemePalette][@"surface"];
 }
 
 - (NSColor *)surface2Color {
-    return [NSColor colorWithRed:0.055 green:0.068 blue:0.086 alpha:1];
+    return [AppSettings selectedThemePalette][@"surface2"];
 }
 
 - (NSColor *)borderColor {
-    return [NSColor colorWithRed:0.16 green:0.20 blue:0.26 alpha:1];
+    return [AppSettings selectedThemePalette][@"border"];
 }
 
 - (NSColor *)textColor {
-    return [NSColor colorWithRed:0.96 green:0.95 blue:0.91 alpha:1];
+    return [AppSettings selectedThemePalette][@"text"];
 }
 
 - (NSColor *)mutedColor {
-    return [NSColor colorWithRed:0.62 green:0.65 blue:0.70 alpha:1];
+    return [AppSettings selectedThemePalette][@"muted"];
+}
+
+- (NSColor *)canvasColor {
+    return [AppSettings selectedThemePalette][@"canvas"];
+}
+
+- (NSColor *)sourceSurfaceColor {
+    return [AppSettings selectedThemePalette][@"source"];
+}
+
+- (NSColor *)resultSurfaceColor {
+    return [AppSettings selectedThemePalette][@"result"];
+}
+
+- (NSColor *)accentForegroundColor {
+    return [AppSettings selectedThemePalette][@"accentForeground"];
+}
+
+- (NSColor *)secondaryAccentColor {
+    return [AppSettings selectedThemePalette][@"secondary"];
+}
+
+- (NSColor *)selectionColor {
+    return [AppSettings selectedThemePalette][@"selection"];
+}
+
+- (NSColor *)selectionBorderColor {
+    return [AppSettings selectedThemePalette][@"selectionBorder"];
+}
+
+- (void)applyTheme {
+    BOOL dark = [AppSettings selectedThemeUsesDarkAppearance];
+    _window.appearance = [NSAppearance appearanceNamed:(dark ? NSAppearanceNameDarkAqua : NSAppearanceNameAqua)];
+    _backgroundView.layer.backgroundColor = [[self canvasColor] colorWithAlphaComponent:0.97].CGColor;
+
+    [_titleLabel applyTextColor:[self textColor]
+                   accentColor:[self secondaryAccentColor]
+                     boltColor:[self accentColor]];
+    _subtitleLabel.textColor = [self mutedColor];
+
+    _connectionPill.fillColor = [self selectionColor];
+    [_connectionPill setStrokeColor:[self selectionBorderColor] width:0.8];
+    _connectionDot.layer.backgroundColor = [self accentColor].CGColor;
+    _connectionLabel.textColor = [self accentColor];
+
+    _statusPill.fillColor = [self surface2Color];
+    [_statusPill setStrokeColor:[self borderColor] width:0.8];
+    _statusLabel.textColor = [self textColor];
+    _detailLabel.textColor = [self mutedColor];
+
+    [_sourceCard applyFillColor:[self sourceSurfaceColor]
+                     titleColor:[self mutedColor]
+                      bodyColor:[self textColor]
+                 insertionColor:[self accentColor]
+                    borderColor:[self borderColor]];
+    [_resultCard applyFillColor:[self resultSurfaceColor]
+                     titleColor:[self accentColor]
+                      bodyColor:[self textColor]
+                 insertionColor:[self accentColor]
+                    borderColor:[self selectionBorderColor]];
+    [_analysisCard applyFillColor:[self surfaceColor]
+                       titleColor:[self mutedColor]
+                        bodyColor:[self textColor]
+                   insertionColor:[self accentColor]
+                      borderColor:[self borderColor]];
+    [_diffCard applyFillColor:[self surfaceColor]
+                   titleColor:[self mutedColor]
+                    bodyColor:[self textColor]
+               insertionColor:[self accentColor]
+                  borderColor:[self borderColor]];
+
+    _languageSwitchContainer.fillColor = [self surface2Color];
+    [_languageSwitchContainer setStrokeColor:[self borderColor] width:0.7];
+    _reviewTabContainer.fillColor = [self surface2Color];
+    [_reviewTabContainer setStrokeColor:[self borderColor] width:0.7];
+    _toneLabel.textColor = [self mutedColor];
+    _recentLabel.textColor = [self mutedColor];
+    [self styleTonePopup:_tonePopup];
+    [self refreshLanguageButtons];
+    [self refreshReviewTabs];
+
+    [self styleButton:_pasteButton
+           background:[self surface2Color]
+           foreground:[self textColor]
+               border:[self borderColor]
+               radius:9];
+    [self decorateButton:_pasteButton
+                   title:[self localized:@"paste"]
+                  symbol:@"clipboard"
+                iconSize:14
+                    font:[NSFont systemFontOfSize:12 weight:NSFontWeightSemibold]
+              foreground:[self textColor]];
+
+    [self styleButton:_settingsButton
+           background:[self surfaceColor]
+           foreground:[self mutedColor]
+               border:[self borderColor]
+               radius:10];
+    [self decorateButton:_settingsButton
+                   title:@""
+                  symbol:@"gearshape.fill"
+                iconSize:19
+                    font:[NSFont systemFontOfSize:12 weight:NSFontWeightSemibold]
+              foreground:[self mutedColor]];
+
+    [_energyRail applyTrackColor:[self borderColor]
+                       nodeColor:[self secondaryAccentColor]
+                     accentColor:[self accentColor]];
+
+    for (NSView *view in _recentStack.arrangedSubviews) {
+        if ([view isKindOfClass:NSTextField.class]) {
+            ((NSTextField *)view).textColor = [self mutedColor];
+            continue;
+        }
+        if (![view isKindOfClass:NSButton.class]) {
+            continue;
+        }
+        NSButton *button = (NSButton *)view;
+        NSMutableAttributedString *title = [button.attributedTitle mutableCopy];
+        if (title.length == 0) {
+            continue;
+        }
+        [title addAttributes:@{
+            NSForegroundColorAttributeName: [self mutedColor],
+            NSFontAttributeName: button.font ?: [NSFont systemFontOfSize:11.5 weight:NSFontWeightRegular]
+        } range:NSMakeRange(0, title.length)];
+        NSRange separator = [title.string rangeOfString:@"   "];
+        if (separator.location != NSNotFound && separator.location > 0) {
+            [title addAttributes:@{
+                NSForegroundColorAttributeName: [self accentColor],
+                NSFontAttributeName: [NSFont systemFontOfSize:11 weight:NSFontWeightBold]
+            } range:NSMakeRange(0, separator.location)];
+        }
+        button.attributedTitle = title;
+    }
+
+    [self refreshCopyButton];
+    [self updateDiffFromSource:_sourceCard.bodyText result:_resultCard.bodyText];
+    [_analysisCard setBodyText:_analysisCard.bodyText];
+    [self setModeText:_statusLabel.stringValue detail:_detailLabel.stringValue];
 }
 
 - (NSString *)localized:(NSString *)key {
@@ -1094,7 +1395,8 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     button.layer.shadowOffset = NSMakeSize(0, -1);
     button.contentTintColor = foreground;
     if ([button isKindOfClass:HoverButton.class]) {
-        NSColor *hover = [background blendedColorWithFraction:0.10 ofColor:[NSColor whiteColor]] ?: background;
+        NSColor *hoverTarget = [AppSettings selectedThemeUsesDarkAppearance] ? NSColor.whiteColor : NSColor.blackColor;
+        NSColor *hover = [background blendedColorWithFraction:0.08 ofColor:hoverTarget] ?: background;
         [(HoverButton *)button setBaseColor:background hoverColor:hover];
     }
 
@@ -1149,15 +1451,9 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     for (NSButton *button in buttons) {
         NSString *buttonLanguage = (button == _russianLanguageButton) ? languageB : languageA;
         BOOL selected = [targetLanguage isEqualToString:buttonLanguage];
-        NSColor *background = selected
-            ? [NSColor colorWithRed:0.20 green:0.19 blue:0.11 alpha:1]
-            : [NSColor clearColor];
-        NSColor *foreground = selected
-            ? [NSColor colorWithRed:1.0 green:0.82 blue:0.30 alpha:1]
-            : [NSColor colorWithRed:0.66 green:0.69 blue:0.74 alpha:1];
-        NSColor *border = selected
-            ? [NSColor colorWithRed:0.48 green:0.42 blue:0.17 alpha:1]
-            : [NSColor clearColor];
+        NSColor *background = selected ? [self selectionColor] : NSColor.clearColor;
+        NSColor *foreground = selected ? [self accentColor] : [self mutedColor];
+        NSColor *border = selected ? [self selectionBorderColor] : NSColor.clearColor;
         [self styleButton:button background:background foreground:foreground border:border radius:8];
         [self decorateButton:button
                        title:buttonLanguage
@@ -1173,15 +1469,14 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     NSArray<NSButton *> *buttons = @[_errorReviewTabButton, _diffViewTabButton];
     for (NSButton *button in buttons) {
         BOOL selected = button.tag == _selectedReviewTab;
+        NSColor *secondary = [self secondaryAccentColor];
         NSColor *background = selected
-            ? [NSColor colorWithRed:0.13 green:0.18 blue:0.30 alpha:1]
-            : [NSColor clearColor];
-        NSColor *foreground = selected
-            ? [NSColor colorWithRed:0.55 green:0.68 blue:1.0 alpha:1]
-            : [NSColor colorWithRed:0.66 green:0.69 blue:0.74 alpha:1];
+            ? [[self surfaceColor] blendedColorWithFraction:0.16 ofColor:secondary]
+            : NSColor.clearColor;
+        NSColor *foreground = selected ? secondary : [self mutedColor];
         NSColor *border = selected
-            ? [NSColor colorWithRed:0.28 green:0.39 blue:0.65 alpha:1]
-            : [NSColor clearColor];
+            ? [[self borderColor] blendedColorWithFraction:0.38 ofColor:secondary]
+            : NSColor.clearColor;
         [self styleButton:button background:background foreground:foreground border:border radius:8];
         [self decorateButton:button
                        title:(button == _errorReviewTabButton ? [self localized:@"review"] : [self localized:@"diff"])
@@ -1214,7 +1509,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                   symbol:@"doc.on.doc.fill"
                 iconSize:15
                     font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
-              foreground:[NSColor colorWithRed:0.055 green:0.065 blue:0.075 alpha:1]];
+              foreground:[self accentForegroundColor]];
     [self refreshLanguageButtons];
     [self refreshReviewTabs];
 }
@@ -1236,19 +1531,19 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         _window.backgroundColor = NSColor.clearColor;
         _window.opaque = NO;
         _window.delegate = self;
-        _window.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+        _window.appearance = [NSAppearance appearanceNamed:([AppSettings selectedThemeUsesDarkAppearance] ? NSAppearanceNameDarkAqua : NSAppearanceNameAqua)];
 
         NSView *content = _window.contentView;
-        NSVisualEffectView *background = [NSVisualEffectView new];
-        background.translatesAutoresizingMaskIntoConstraints = NO;
-        background.material = NSVisualEffectMaterialUnderWindowBackground;
-        background.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-        background.state = NSVisualEffectStateActive;
-        background.wantsLayer = YES;
-        background.layer.cornerRadius = 20;
-        background.layer.cornerCurve = kCACornerCurveContinuous;
-        background.layer.backgroundColor = [NSColor colorWithRed:0.035 green:0.045 blue:0.06 alpha:0.96].CGColor;
-        [content addSubview:background positioned:NSWindowBelow relativeTo:nil];
+        _backgroundView = [NSVisualEffectView new];
+        _backgroundView.translatesAutoresizingMaskIntoConstraints = NO;
+        _backgroundView.material = NSVisualEffectMaterialUnderWindowBackground;
+        _backgroundView.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+        _backgroundView.state = NSVisualEffectStateActive;
+        _backgroundView.wantsLayer = YES;
+        _backgroundView.layer.cornerRadius = 20;
+        _backgroundView.layer.cornerCurve = kCACornerCurveContinuous;
+        _backgroundView.layer.backgroundColor = [[self canvasColor] colorWithAlphaComponent:0.97].CGColor;
+        [content addSubview:_backgroundView positioned:NSWindowBelow relativeTo:nil];
 
         _titleLabel = [SpeedProofLogoView new];
 
@@ -1303,7 +1598,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         _detailLabel.translatesAutoresizingMaskIntoConstraints = NO;
         [_statusPill addSubview:_detailLabel];
 
-        _sourceCard = [[TextCardView alloc] initWithTitle:@"ORIGINAL TEXT" tintColor:[NSColor colorWithRed:0.060 green:0.074 blue:0.095 alpha:1] editable:YES];
+        _sourceCard = [[TextCardView alloc] initWithTitle:@"ORIGINAL TEXT" tintColor:[self sourceSurfaceColor] editable:YES];
         _sourceCard.translatesAutoresizingMaskIntoConstraints = NO;
         [_sourceCard setStrokeColor:[NSColor colorWithRed:0.15 green:0.19 blue:0.25 alpha:1] width:0.8];
         [_sourceCard setElevationOpacity:0.14 radius:18 offset:NSMakeSize(0, -4)];
@@ -1323,7 +1618,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
             }
         };
 
-        _resultCard = [[TextCardView alloc] initWithTitle:@"FINAL TEXT" tintColor:[NSColor colorWithRed:0.073 green:0.086 blue:0.110 alpha:1] editable:NO];
+        _resultCard = [[TextCardView alloc] initWithTitle:@"FINAL TEXT" tintColor:[self resultSurfaceColor] editable:NO];
         _resultCard.translatesAutoresizingMaskIntoConstraints = NO;
         [_resultCard setStrokeColor:[NSColor colorWithRed:0.34 green:0.31 blue:0.16 alpha:1] width:0.9];
         [_resultCard setElevationOpacity:0.22 radius:22 offset:NSMakeSize(0, -5)];
@@ -1413,13 +1708,13 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         _copyButton.bezelStyle = NSBezelStyleRegularSquare;
         _copyButton.font = [NSFont systemFontOfSize:14 weight:NSFontWeightSemibold];
         _copyButton.translatesAutoresizingMaskIntoConstraints = NO;
-        [self styleButton:_copyButton background:[self accentColor] foreground:[NSColor colorWithRed:0.055 green:0.065 blue:0.075 alpha:1] border:[NSColor colorWithRed:1.0 green:0.86 blue:0.42 alpha:0.8] radius:12];
+        [self styleButton:_copyButton background:[self accentColor] foreground:[self accentForegroundColor] border:[self selectionBorderColor] radius:12];
         [self decorateButton:_copyButton
                        title:@"Copy final text"
                       symbol:@"doc.on.doc.fill"
                     iconSize:15
                         font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
-                  foreground:[NSColor colorWithRed:0.055 green:0.065 blue:0.075 alpha:1]];
+                  foreground:[self accentForegroundColor]];
 
         _settingsButton = [[HoverButton alloc] initWithFrame:NSZeroRect];
         _settingsButton.title = @"";
@@ -1428,7 +1723,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         _settingsButton.bezelStyle = NSBezelStyleRegularSquare;
         _settingsButton.translatesAutoresizingMaskIntoConstraints = NO;
         _settingsButton.toolTip = @"Settings";
-        NSColor *settingsIconColor = [NSColor colorWithRed:0.70 green:0.73 blue:0.78 alpha:1];
+        NSColor *settingsIconColor = [self mutedColor];
         [self styleButton:_settingsButton background:[self surfaceColor] foreground:settingsIconColor border:[self borderColor] radius:10];
         [self decorateButton:_settingsButton
                        title:@""
@@ -1443,10 +1738,10 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         }
 
         [NSLayoutConstraint activateConstraints:@[
-            [background.leadingAnchor constraintEqualToAnchor:content.leadingAnchor],
-            [background.trailingAnchor constraintEqualToAnchor:content.trailingAnchor],
-            [background.topAnchor constraintEqualToAnchor:content.topAnchor],
-            [background.bottomAnchor constraintEqualToAnchor:content.bottomAnchor],
+            [_backgroundView.leadingAnchor constraintEqualToAnchor:content.leadingAnchor],
+            [_backgroundView.trailingAnchor constraintEqualToAnchor:content.trailingAnchor],
+            [_backgroundView.topAnchor constraintEqualToAnchor:content.topAnchor],
+            [_backgroundView.bottomAnchor constraintEqualToAnchor:content.bottomAnchor],
 
             [_titleLabel.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:24],
             [_titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:_settingsButton.leadingAnchor constant:-12],
@@ -1577,6 +1872,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
             [_recentStack.bottomAnchor constraintLessThanOrEqualToAnchor:content.bottomAnchor constant:-14]
         ]];
 
+        [self applyTheme];
         [self applyInterfaceLanguage];
         [self setSourceText:@"" resultText:[self localized:@"finalPlaceholder"]];
         [_diffCard setBodyText:[self localized:@"diffPlaceholder"]];
@@ -1610,14 +1906,14 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 - (void)setProcessing:(BOOL)isProcessing {
     _isProcessing = isProcessing;
     _statusPill.fillColor = isProcessing
-        ? [NSColor colorWithRed:0.13 green:0.12 blue:0.055 alpha:0.98]
-        : [NSColor colorWithRed:0.055 green:0.073 blue:0.095 alpha:0.98];
+        ? [[self surface2Color] blendedColorWithFraction:0.16 ofColor:[self accentColor]]
+        : [self surface2Color];
     [_statusPill setStrokeColor:(isProcessing
-        ? [NSColor colorWithRed:0.44 green:0.38 blue:0.13 alpha:1]
+        ? [self selectionBorderColor]
         : [self borderColor]) width:0.8];
     _statusDot.layer.backgroundColor = (isProcessing
-        ? [NSColor colorWithRed:1.0 green:0.80 blue:0.18 alpha:1]
-        : [NSColor colorWithRed:0.40 green:0.56 blue:0.96 alpha:1]).CGColor;
+        ? [self accentColor]
+        : [self secondaryAccentColor]).CGColor;
     [_energyRail setProcessing:isProcessing];
     [_statusDot.layer removeAnimationForKey:@"statusPulse"];
     if (isProcessing) {
@@ -1637,7 +1933,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     _statusLabel.stringValue = modeText ?: @"";
     _detailLabel.stringValue = detail ?: @"";
     NSString *lower = modeText.lowercaseString ?: @"";
-    NSColor *statusColor = [NSColor colorWithRed:0.40 green:0.56 blue:0.96 alpha:1];
+    NSColor *statusColor = [self secondaryAccentColor];
     if ([lower containsString:@"done"] || [lower containsString:@"copied"] || [lower containsString:@"saved"]) {
         statusColor = [NSColor colorWithRed:0.40 green:0.84 blue:0.55 alpha:1];
     } else if ([lower containsString:@"failed"] || [lower containsString:@"couldn't"] || [lower containsString:@"required"]) {
@@ -1708,8 +2004,8 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     scale.toValue = @1.0;
 
     CABasicAnimation *border = [CABasicAnimation animationWithKeyPath:@"borderColor"];
-    border.fromValue = (id)[NSColor colorWithRed:1.0 green:0.80 blue:0.18 alpha:0.95].CGColor;
-    border.toValue = (id)[NSColor colorWithRed:0.34 green:0.31 blue:0.16 alpha:1].CGColor;
+    border.fromValue = (id)[[self accentColor] colorWithAlphaComponent:0.95].CGColor;
+    border.toValue = (id)[self selectionBorderColor].CGColor;
 
     CAAnimationGroup *group = [CAAnimationGroup animation];
     group.animations = @[opacity, scale, border];
@@ -1855,8 +2151,10 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 
 - (void)setAPIKeyAvailable:(BOOL)isAvailable {
     _connectionPill.hidden = isAvailable;
-    _connectionPill.fillColor = [NSColor colorWithRed:0.18 green:0.12 blue:0.08 alpha:1];
-    _connectionDot.layer.backgroundColor = [NSColor colorWithRed:0.86 green:0.45 blue:0.22 alpha:1].CGColor;
+    _connectionPill.fillColor = [self selectionColor];
+    [_connectionPill setStrokeColor:[self selectionBorderColor] width:0.8];
+    _connectionDot.layer.backgroundColor = [self accentColor].CGColor;
+    _connectionLabel.textColor = [self accentColor];
     _connectionLabel.stringValue = @"Needs API key";
 }
 
@@ -1870,7 +2168,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     if (count == 0) {
         NSTextField *emptyLabel = [NSTextField wrappingLabelWithString:[self localized:@"noRecent"]];
         emptyLabel.font = [NSFont systemFontOfSize:12 weight:NSFontWeightRegular];
-        emptyLabel.textColor = [NSColor colorWithRed:0.47 green:0.44 blue:0.39 alpha:1];
+        emptyLabel.textColor = [self mutedColor];
         [_recentStack addArrangedSubview:emptyLabel];
         return;
     }
@@ -1891,7 +2189,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         button.cell.lineBreakMode = NSLineBreakByTruncatingTail;
         NSMutableAttributedString *title = [[NSMutableAttributedString alloc] initWithString:button.title];
         [title addAttributes:@{
-            NSForegroundColorAttributeName: [NSColor colorWithRed:0.63 green:0.59 blue:0.53 alpha:1],
+            NSForegroundColorAttributeName: [self mutedColor],
             NSFontAttributeName: button.font
         } range:NSMakeRange(0, title.length)];
         NSRange badgeRange = [button.title rangeOfString:badge];
@@ -1984,15 +2282,15 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         }
         [strongSelf styleButton:strongSelf->_copyButton
                      background:[strongSelf accentColor]
-                     foreground:[NSColor colorWithRed:0.10 green:0.08 blue:0.05 alpha:1]
-                         border:[NSColor colorWithRed:0.93 green:0.64 blue:0.30 alpha:0.7]
+                     foreground:[strongSelf accentForegroundColor]
+                         border:[strongSelf selectionBorderColor]
                          radius:12];
         [strongSelf decorateButton:strongSelf->_copyButton
                              title:[strongSelf localized:@"copy"]
                             symbol:@"doc.on.doc.fill"
                           iconSize:15
                               font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
-                        foreground:[NSColor colorWithRed:0.10 green:0.08 blue:0.05 alpha:1]];
+                        foreground:[strongSelf accentForegroundColor]];
         strongSelf->_copyFeedbackTimer = nil;
     }];
 
@@ -2053,13 +2351,13 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     BOOL canCopy = hasResult && !placeholderResult;
 
     NSColor *foreground = canCopy
-        ? [NSColor colorWithRed:0.055 green:0.065 blue:0.075 alpha:1]
-        : [NSColor colorWithRed:0.49 green:0.52 blue:0.57 alpha:1];
+        ? [self accentForegroundColor]
+        : [self mutedColor];
     [self styleButton:_copyButton
            background:(canCopy ? [self accentColor] : [self surface2Color])
            foreground:foreground
                border:(canCopy
-                   ? [NSColor colorWithRed:1.0 green:0.86 blue:0.42 alpha:0.8]
+                   ? [self selectionBorderColor]
                    : [self borderColor])
                radius:12];
     [self decorateButton:_copyButton
@@ -2899,13 +3197,13 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 - (void)openSettings {
     NSAlert *alert = [NSAlert new];
     alert.messageText = @"Settings";
-    alert.informativeText = @"Add your OpenAI API key, pick the model, and choose your translation languages.";
+    alert.informativeText = @"Configure your API key, model, languages, and appearance.";
     [alert addButtonWithTitle:@"Save"];
     [alert addButtonWithTitle:@"Cancel"];
     [alert addButtonWithTitle:@"Clear"];
     [alert addButtonWithTitle:@"Quit SpeedProof"];
 
-    NSView *accessory = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 360, 294)];
+    NSView *accessory = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 360, 350)];
     NSTextField *label = [NSTextField wrappingLabelWithString:@"OpenAI API key"];
     label.font = [NSFont systemFontOfSize:12 weight:NSFontWeightSemibold];
     label.translatesAutoresizingMaskIntoConstraints = NO;
@@ -2953,6 +3251,15 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     }
     [interfacePopup selectItemWithTitle:[AppSettings interfaceLanguage]];
 
+    NSTextField *themeLabel = [NSTextField wrappingLabelWithString:@"Color scheme"];
+    themeLabel.font = [NSFont systemFontOfSize:12 weight:NSFontWeightSemibold];
+    themeLabel.translatesAutoresizingMaskIntoConstraints = NO;
+
+    NSPopUpButton *themePopup = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
+    themePopup.translatesAutoresizingMaskIntoConstraints = NO;
+    [themePopup addItemsWithTitles:[AppSettings themeNames]];
+    [themePopup selectItemWithTitle:[AppSettings selectedThemeName]];
+
     [accessory addSubview:label];
     [accessory addSubview:field];
     [accessory addSubview:modelLabel];
@@ -2962,6 +3269,8 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     [accessory addSubview:languageBPopup];
     [accessory addSubview:interfaceLabel];
     [accessory addSubview:interfacePopup];
+    [accessory addSubview:themeLabel];
+    [accessory addSubview:themePopup];
     [NSLayoutConstraint activateConstraints:@[
         [label.leadingAnchor constraintEqualToAnchor:accessory.leadingAnchor],
         [label.trailingAnchor constraintEqualToAnchor:accessory.trailingAnchor],
@@ -2996,7 +3305,15 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         [interfacePopup.leadingAnchor constraintEqualToAnchor:accessory.leadingAnchor],
         [interfacePopup.trailingAnchor constraintEqualToAnchor:accessory.trailingAnchor],
         [interfacePopup.topAnchor constraintEqualToAnchor:interfaceLabel.bottomAnchor constant:8],
-        [interfacePopup.heightAnchor constraintEqualToConstant:28]
+        [interfacePopup.heightAnchor constraintEqualToConstant:28],
+
+        [themeLabel.leadingAnchor constraintEqualToAnchor:accessory.leadingAnchor],
+        [themeLabel.trailingAnchor constraintEqualToAnchor:accessory.trailingAnchor],
+        [themeLabel.topAnchor constraintEqualToAnchor:interfacePopup.bottomAnchor constant:14],
+        [themePopup.leadingAnchor constraintEqualToAnchor:accessory.leadingAnchor],
+        [themePopup.trailingAnchor constraintEqualToAnchor:accessory.trailingAnchor],
+        [themePopup.topAnchor constraintEqualToAnchor:themeLabel.bottomAnchor constant:8],
+        [themePopup.heightAnchor constraintEqualToConstant:28]
     ]];
     alert.accessoryView = accessory;
 
@@ -3009,10 +3326,12 @@ typedef NS_ENUM(NSInteger, TransformMode) {
             [AppSettings setTranslationLanguageA:languageAPopup.selectedItem.title ?: @"English"
                                        languageB:languageBPopup.selectedItem.title ?: @"Russian"];
             [AppSettings setInterfaceLanguage:interfacePopup.selectedItem.title ?: @"English"];
+            [AppSettings setSelectedThemeName:themePopup.selectedItem.title ?: @"Electric"];
+            [self->_windowController applyTheme];
             [self->_windowController refreshLanguageControls];
             if (value.length == 0) {
                 [self->_windowController setModeText:@"Settings updated"
-                                              detail:@"Model and languages were saved. Add your OpenAI API key when you're ready."];
+                                              detail:@"Model, languages, and appearance were saved. Add your OpenAI API key when you're ready."];
                 return;
             }
             if ([APIKeyStore saveAPIKey:value error:&error]) {

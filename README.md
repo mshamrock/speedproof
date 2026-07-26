@@ -15,6 +15,7 @@ to the OpenAI Responses API using the API key supplied by the user.
   text, and places the result back on the clipboard.
 - Manual text input with automatic processing after a short pause.
 - Configurable source and target languages.
+- Four persistent color schemes: Electric, Graphite, Arctic, and Evergreen.
 - Tone presets: Neutral, Polite, Shorter, and Confident.
 - Automatic Polite tone for text that looks like a message or email.
 - Error Review and Diff View for English cleanup.

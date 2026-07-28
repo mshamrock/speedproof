@@ -1069,6 +1069,8 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     NSButton *_pasteBackButton;
     NSStackView *_resultActionsStack;
     NSLayoutConstraint *_resultActionsWidthConstraint;
+    NSButton *_helpButton;
+    NSPopover *_helpPopover;
     NSButton *_settingsButton;
     TextCardView *_sourceCard;
     TextCardView *_resultCard;
@@ -1220,6 +1222,18 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                 iconSize:15
                     font:[NSFont systemFontOfSize:13 weight:NSFontWeightSemibold]
               foreground:[self textColor]];
+
+    [self styleButton:_helpButton
+           background:[self surfaceColor]
+           foreground:[self mutedColor]
+               border:[self borderColor]
+               radius:10];
+    [self decorateButton:_helpButton
+                   title:@""
+                  symbol:@"questionmark.circle.fill"
+                iconSize:18
+                    font:[NSFont systemFontOfSize:12 weight:NSFontWeightSemibold]
+              foreground:[self mutedColor]];
 
     [self styleButton:_settingsButton
            background:[self surfaceColor]
@@ -1779,6 +1793,22 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         _resultActionsWidthConstraint = [_resultActionsStack.widthAnchor constraintEqualToConstant:424];
         _resultActionsWidthConstraint.priority = NSLayoutPriorityDefaultHigh;
 
+        _helpButton = [[HoverButton alloc] initWithFrame:NSZeroRect];
+        _helpButton.title = @"";
+        _helpButton.target = self;
+        _helpButton.action = @selector(showKeyboardHelp:);
+        _helpButton.bezelStyle = NSBezelStyleRegularSquare;
+        _helpButton.translatesAutoresizingMaskIntoConstraints = NO;
+        _helpButton.toolTip = @"Keyboard shortcuts";
+        _helpButton.accessibilityLabel = @"Help and keyboard shortcuts";
+        [self styleButton:_helpButton background:[self surfaceColor] foreground:[self mutedColor] border:[self borderColor] radius:10];
+        [self decorateButton:_helpButton
+                       title:@""
+                      symbol:@"questionmark.circle.fill"
+                    iconSize:18
+                        font:[NSFont systemFontOfSize:12 weight:NSFontWeightSemibold]
+                  foreground:[self mutedColor]];
+
         _settingsButton = [[HoverButton alloc] initWithFrame:NSZeroRect];
         _settingsButton.title = @"";
         _settingsButton.target = self;
@@ -1795,7 +1825,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                         font:[NSFont systemFontOfSize:12 weight:NSFontWeightSemibold]
                   foreground:settingsIconColor];
 
-        NSArray<NSView *> *views = @[_titleLabel, _subtitleLabel, _connectionPill, _statusPill, _sourceCard, _pasteButton, _languageSwitchContainer, _toneLabel, _tonePopup, _energyRail, _resultCard, _resultActionsStack, _reviewTabContainer, _analysisCard, _diffCard, _recentLabel, _recentStack, _settingsButton];
+        NSArray<NSView *> *views = @[_titleLabel, _subtitleLabel, _connectionPill, _statusPill, _sourceCard, _pasteButton, _languageSwitchContainer, _toneLabel, _tonePopup, _energyRail, _resultCard, _resultActionsStack, _reviewTabContainer, _analysisCard, _diffCard, _recentLabel, _recentStack, _helpButton, _settingsButton];
         for (NSView *view in views) {
             [content addSubview:view];
         }
@@ -1807,7 +1837,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
             [_backgroundView.bottomAnchor constraintEqualToAnchor:content.bottomAnchor],
 
             [_titleLabel.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:24],
-            [_titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:_settingsButton.leadingAnchor constant:-12],
+            [_titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:_helpButton.leadingAnchor constant:-12],
             [_titleLabel.topAnchor constraintEqualToAnchor:content.topAnchor constant:25],
 
             [_subtitleLabel.leadingAnchor constraintEqualToAnchor:_titleLabel.leadingAnchor],
@@ -1819,7 +1849,12 @@ typedef NS_ENUM(NSInteger, TransformMode) {
             [_settingsButton.widthAnchor constraintEqualToConstant:34],
             [_settingsButton.heightAnchor constraintEqualToConstant:34],
 
-            [_connectionPill.trailingAnchor constraintEqualToAnchor:_settingsButton.leadingAnchor constant:-8],
+            [_helpButton.trailingAnchor constraintEqualToAnchor:_settingsButton.leadingAnchor constant:-8],
+            [_helpButton.centerYAnchor constraintEqualToAnchor:_settingsButton.centerYAnchor],
+            [_helpButton.widthAnchor constraintEqualToConstant:34],
+            [_helpButton.heightAnchor constraintEqualToConstant:34],
+
+            [_connectionPill.trailingAnchor constraintEqualToAnchor:_helpButton.leadingAnchor constant:-8],
             [_connectionPill.centerYAnchor constraintEqualToAnchor:_settingsButton.centerYAnchor],
             [_connectionPill.heightAnchor constraintEqualToConstant:28],
             [_connectionPill.widthAnchor constraintLessThanOrEqualToConstant:122],
@@ -2394,6 +2429,92 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     if (_pasteBackHandler) {
         _pasteBackHandler();
     }
+}
+
+- (NSView *)keyboardShortcutRowWithKey:(NSString *)key description:(NSString *)description {
+    NSTextField *keyLabel = [NSTextField labelWithString:key];
+    keyLabel.alignment = NSTextAlignmentCenter;
+    keyLabel.font = [NSFont monospacedSystemFontOfSize:13 weight:NSFontWeightSemibold];
+    keyLabel.textColor = [self textColor];
+    keyLabel.drawsBackground = YES;
+    keyLabel.backgroundColor = [self surface2Color];
+    keyLabel.wantsLayer = YES;
+    keyLabel.layer.cornerRadius = 7;
+    keyLabel.layer.cornerCurve = kCACornerCurveContinuous;
+    keyLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    [keyLabel.widthAnchor constraintEqualToConstant:58].active = YES;
+    [keyLabel.heightAnchor constraintEqualToConstant:28].active = YES;
+
+    NSTextField *descriptionLabel = [NSTextField wrappingLabelWithString:description];
+    descriptionLabel.font = [NSFont systemFontOfSize:12 weight:NSFontWeightRegular];
+    descriptionLabel.textColor = [self textColor];
+    descriptionLabel.maximumNumberOfLines = 2;
+
+    NSStackView *row = [NSStackView stackViewWithViews:@[keyLabel, descriptionLabel]];
+    row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    row.alignment = NSLayoutAttributeCenterY;
+    row.spacing = 12;
+    return row;
+}
+
+- (void)showKeyboardHelp:(id)sender {
+    (void)sender;
+    if (_helpPopover.shown) {
+        [_helpPopover close];
+        return;
+    }
+
+    NSViewController *controller = [NSViewController new];
+    NSView *content = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 340, 220)];
+    content.wantsLayer = YES;
+    content.layer.backgroundColor = [self surfaceColor].CGColor;
+
+    NSTextField *title = [NSTextField labelWithString:@"Keyboard shortcuts"];
+    title.font = [NSFont systemFontOfSize:15 weight:NSFontWeightSemibold];
+    title.textColor = [self textColor];
+
+    NSTextField *subtitle = [NSTextField wrappingLabelWithString:@"SpeedProof can work quietly or bring the result forward."];
+    subtitle.font = [NSFont systemFontOfSize:11.5 weight:NSFontWeightRegular];
+    subtitle.textColor = [self mutedColor];
+    subtitle.maximumNumberOfLines = 2;
+
+    NSView *optionRow = [self keyboardShortcutRowWithKey:@"⌥ C"
+                                            description:@"Copy the selection, open SpeedProof, and process it."];
+    NSView *commandRow = [self keyboardShortcutRowWithKey:@"⌘ C"
+                                             description:@"Process copied text quietly in the background."];
+
+    NSTextField *permissionHint = [NSTextField wrappingLabelWithString:@"Copy & Paste needs Accessibility access to return text to another app."];
+    permissionHint.font = [NSFont systemFontOfSize:10.5 weight:NSFontWeightRegular];
+    permissionHint.textColor = [self mutedColor];
+    permissionHint.maximumNumberOfLines = 2;
+
+    NSStackView *stack = [NSStackView stackViewWithViews:@[title, subtitle, optionRow, commandRow, permissionHint]];
+    stack.orientation = NSUserInterfaceLayoutOrientationVertical;
+    stack.alignment = NSLayoutAttributeLeading;
+    stack.spacing = 10;
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    [content addSubview:stack];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [stack.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:18],
+        [stack.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-18],
+        [stack.topAnchor constraintEqualToAnchor:content.topAnchor constant:16],
+        [stack.bottomAnchor constraintLessThanOrEqualToAnchor:content.bottomAnchor constant:-16],
+        [optionRow.widthAnchor constraintEqualToAnchor:stack.widthAnchor],
+        [commandRow.widthAnchor constraintEqualToAnchor:stack.widthAnchor],
+        [permissionHint.widthAnchor constraintEqualToAnchor:stack.widthAnchor]
+    ]];
+
+    controller.view = content;
+    _helpPopover = [NSPopover new];
+    _helpPopover.contentViewController = controller;
+    _helpPopover.contentSize = NSMakeSize(340, 220);
+    _helpPopover.behavior = NSPopoverBehaviorTransient;
+    _helpPopover.animates = YES;
+    _helpPopover.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+    [_helpPopover showRelativeToRect:_helpButton.bounds
+                             ofView:_helpButton
+                      preferredEdge:NSRectEdgeMinY];
 }
 
 - (void)changeLanguageButton:(NSButton *)sender {

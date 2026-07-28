@@ -23,7 +23,9 @@ background.
 ### Intentional shortcut workflow
 
 `Option+C` copies the current selection, brings SpeedProof forward, processes
-the text, and copies the finished result back to the clipboard.
+the text, and copies the finished result back to the clipboard. A contextual
+Paste action returns to the originating app and replaces the original
+selection with the finished text.
 
 ### Manual workflow
 

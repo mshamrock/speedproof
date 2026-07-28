@@ -13,6 +13,8 @@ to the OpenAI Responses API using the API key supplied by the user.
 - Background clipboard processing without stealing focus.
 - `Option+C` copies the current selection, opens SpeedProof, processes the
   text, and places the result back on the clipboard.
+- A contextual **Paste** button can return to the app where `Option+C` was
+  pressed and replace the original selection with the finished text.
 - Manual text input with automatic processing after a short pause.
 - Configurable source and target languages.
 - Four persistent color schemes: Electric, Graphite, Arctic, and Evergreen.

@@ -1016,6 +1016,8 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 - (void)showReviewUnavailablePlaceholder;
 - (void)setCopyHandler:(void (^)(void))handler;
 - (void)setPasteHandler:(void (^)(void))handler;
+- (void)setPasteBackHandler:(void (^)(void))handler;
+- (void)setPasteBackAvailable:(BOOL)isAvailable applicationName:(NSString *)applicationName;
 - (void)setSettingsHandler:(void (^)(void))handler;
 - (void)setHistorySelectionHandler:(void (^)(NSInteger index))handler;
 - (void)setSourceChangeHandler:(void (^)(NSString *text))handler;
@@ -1052,6 +1054,9 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     NSStackView *_recentStack;
     NSButton *_pasteButton;
     NSButton *_copyButton;
+    NSButton *_pasteBackButton;
+    NSStackView *_resultActionsStack;
+    NSLayoutConstraint *_resultActionsWidthConstraint;
     NSButton *_settingsButton;
     TextCardView *_sourceCard;
     TextCardView *_resultCard;
@@ -1062,6 +1067,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     TextCardView *_analysisCard;
     void (^_copyHandler)(void);
     void (^_pasteHandler)(void);
+    void (^_pasteBackHandler)(void);
     void (^_settingsHandler)(void);
     void (^_historySelectionHandler)(NSInteger index);
     void (^_sourceChangeHandler)(NSString *text);
@@ -1070,6 +1076,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     BOOL _isProcessing;
     BOOL _didPlaceWindow;
     BOOL _suppressSourceChange;
+    BOOL _pasteBackAvailable;
     NSInteger _selectedReviewTab;
     NSTimer *_copyFeedbackTimer;
     NSTimer *_dockBadgeTimer;
@@ -1188,6 +1195,18 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                   symbol:@"clipboard"
                 iconSize:14
                     font:[NSFont systemFontOfSize:12 weight:NSFontWeightSemibold]
+              foreground:[self textColor]];
+
+    [self styleButton:_pasteBackButton
+           background:[self selectionColor]
+           foreground:[self textColor]
+               border:[self selectionBorderColor]
+               radius:12];
+    [self decorateButton:_pasteBackButton
+                   title:[self localized:@"paste"]
+                  symbol:@"clipboard.fill"
+                iconSize:15
+                    font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
               foreground:[self textColor]];
 
     [self styleButton:_settingsButton
@@ -1510,6 +1529,12 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                 iconSize:15
                     font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
               foreground:[self accentForegroundColor]];
+    [self decorateButton:_pasteBackButton
+                   title:[self localized:@"paste"]
+                  symbol:@"clipboard.fill"
+                iconSize:15
+                    font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
+              foreground:[self textColor]];
     [self refreshLanguageButtons];
     [self refreshReviewTabs];
 }
@@ -1716,6 +1741,32 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                         font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
                   foreground:[self accentForegroundColor]];
 
+        _pasteBackButton = [[HoverButton alloc] initWithFrame:NSZeroRect];
+        _pasteBackButton.title = @"Paste";
+        _pasteBackButton.target = self;
+        _pasteBackButton.action = @selector(pasteResultBack:);
+        _pasteBackButton.bezelStyle = NSBezelStyleRegularSquare;
+        _pasteBackButton.font = [NSFont systemFontOfSize:14 weight:NSFontWeightSemibold];
+        _pasteBackButton.translatesAutoresizingMaskIntoConstraints = NO;
+        _pasteBackButton.hidden = YES;
+        _pasteBackButton.enabled = NO;
+        [self styleButton:_pasteBackButton background:[self selectionColor] foreground:[self textColor] border:[self selectionBorderColor] radius:12];
+        [self decorateButton:_pasteBackButton
+                       title:@"Paste"
+                      symbol:@"clipboard.fill"
+                    iconSize:15
+                        font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
+                  foreground:[self textColor]];
+
+        _resultActionsStack = [NSStackView stackViewWithViews:@[_copyButton, _pasteBackButton]];
+        _resultActionsStack.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+        _resultActionsStack.alignment = NSLayoutAttributeCenterY;
+        _resultActionsStack.distribution = NSStackViewDistributionFillEqually;
+        _resultActionsStack.spacing = 10;
+        _resultActionsStack.translatesAutoresizingMaskIntoConstraints = NO;
+        _resultActionsWidthConstraint = [_resultActionsStack.widthAnchor constraintEqualToConstant:242];
+        _resultActionsWidthConstraint.priority = NSLayoutPriorityDefaultHigh;
+
         _settingsButton = [[HoverButton alloc] initWithFrame:NSZeroRect];
         _settingsButton.title = @"";
         _settingsButton.target = self;
@@ -1732,7 +1783,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                         font:[NSFont systemFontOfSize:12 weight:NSFontWeightSemibold]
                   foreground:settingsIconColor];
 
-        NSArray<NSView *> *views = @[_titleLabel, _subtitleLabel, _connectionPill, _statusPill, _sourceCard, _pasteButton, _languageSwitchContainer, _toneLabel, _tonePopup, _energyRail, _resultCard, _copyButton, _reviewTabContainer, _analysisCard, _diffCard, _recentLabel, _recentStack, _settingsButton];
+        NSArray<NSView *> *views = @[_titleLabel, _subtitleLabel, _connectionPill, _statusPill, _sourceCard, _pasteButton, _languageSwitchContainer, _toneLabel, _tonePopup, _energyRail, _resultCard, _resultActionsStack, _reviewTabContainer, _analysisCard, _diffCard, _recentLabel, _recentStack, _settingsButton];
         for (NSView *view in views) {
             [content addSubview:view];
         }
@@ -1832,13 +1883,17 @@ typedef NS_ENUM(NSInteger, TransformMode) {
             [_resultCard.topAnchor constraintEqualToAnchor:_energyRail.bottomAnchor constant:4],
             [_resultCard.heightAnchor constraintEqualToConstant:178],
 
-            [_copyButton.centerXAnchor constraintEqualToAnchor:content.centerXAnchor],
-            [_copyButton.widthAnchor constraintEqualToConstant:242],
-            [_copyButton.heightAnchor constraintEqualToConstant:40],
-            [_copyButton.topAnchor constraintEqualToAnchor:_resultCard.bottomAnchor constant:10],
+            [_resultActionsStack.centerXAnchor constraintEqualToAnchor:content.centerXAnchor],
+            [_resultActionsStack.leadingAnchor constraintGreaterThanOrEqualToAnchor:content.leadingAnchor constant:22],
+            [_resultActionsStack.trailingAnchor constraintLessThanOrEqualToAnchor:content.trailingAnchor constant:-22],
+            _resultActionsWidthConstraint,
+            [_resultActionsStack.heightAnchor constraintEqualToConstant:40],
+            [_resultActionsStack.topAnchor constraintEqualToAnchor:_resultCard.bottomAnchor constant:10],
+            [_copyButton.heightAnchor constraintEqualToAnchor:_resultActionsStack.heightAnchor],
+            [_pasteBackButton.heightAnchor constraintEqualToAnchor:_resultActionsStack.heightAnchor],
 
             [_reviewTabContainer.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:22],
-            [_reviewTabContainer.topAnchor constraintEqualToAnchor:_copyButton.bottomAnchor constant:10],
+            [_reviewTabContainer.topAnchor constraintEqualToAnchor:_resultActionsStack.bottomAnchor constant:10],
             [_reviewTabContainer.widthAnchor constraintEqualToConstant:218],
             [_reviewTabContainer.heightAnchor constraintEqualToConstant:30],
 
@@ -2219,6 +2274,20 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     _pasteHandler = [handler copy];
 }
 
+- (void)setPasteBackHandler:(void (^)(void))handler {
+    _pasteBackHandler = [handler copy];
+}
+
+- (void)setPasteBackAvailable:(BOOL)isAvailable applicationName:(NSString *)applicationName {
+    _pasteBackAvailable = isAvailable;
+    _pasteBackButton.hidden = !isAvailable;
+    _resultActionsWidthConstraint.constant = isAvailable ? 424 : 242;
+    _pasteBackButton.toolTip = isAvailable
+        ? [NSString stringWithFormat:@"Replace the selected text in %@.", applicationName.length > 0 ? applicationName : @"the previous app"]
+        : @"";
+    [self refreshCopyButton];
+}
+
 - (void)setSettingsHandler:(void (^)(void))handler {
     _settingsHandler = [handler copy];
 }
@@ -2308,6 +2377,13 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     }
 }
 
+- (void)pasteResultBack:(id)sender {
+    (void)sender;
+    if (_pasteBackHandler) {
+        _pasteBackHandler();
+    }
+}
+
 - (void)changeLanguageButton:(NSButton *)sender {
     NSArray<NSString *> *pair = [AppSettings translationPair];
     NSString *language = (sender.tag == 1) ? pair[1] : pair[0];
@@ -2370,6 +2446,24 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     _copyButton.enabled = canCopy;
     _copyButton.alphaValue = canCopy ? 1.0 : 0.82;
     _copyButton.layer.shadowOpacity = canCopy ? 0.18 : 0;
+
+    BOOL canPasteBack = canCopy && _pasteBackAvailable;
+    NSColor *pasteBackForeground = canPasteBack ? [self textColor] : [self mutedColor];
+    [self styleButton:_pasteBackButton
+           background:(canPasteBack ? [self selectionColor] : [self surface2Color])
+           foreground:pasteBackForeground
+               border:(canPasteBack ? [self selectionBorderColor] : [self borderColor])
+               radius:12];
+    [self decorateButton:_pasteBackButton
+                   title:[self localized:@"paste"]
+                  symbol:@"clipboard.fill"
+                iconSize:15
+                    font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
+              foreground:pasteBackForeground];
+    _pasteBackButton.hidden = !_pasteBackAvailable;
+    _pasteBackButton.enabled = canPasteBack;
+    _pasteBackButton.alphaValue = canPasteBack ? 1.0 : 0.82;
+    _pasteBackButton.layer.shadowOpacity = canPasteBack ? 0.10 : 0;
 }
 
 - (void)windowDidResize:(NSNotification *)notification {
@@ -2564,6 +2658,9 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 - (void)copyResultToPasteboard;
 - (void)pasteFromPasteboard;
 - (void)pasteFromPasteboardAndCopyWhenReady;
+- (void)setPasteBackTargetApplication:(NSRunningApplication *)application;
+- (void)pasteResultBack;
+- (void)clearPasteBackTarget;
 - (void)openSettings;
 @end
 
@@ -2586,6 +2683,8 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     BOOL _pendingShouldBringToFront;
     BOOL _copyResultWhenReady;
     BOOL _pendingShouldCopyResultWhenReady;
+    NSRunningApplication *_pasteBackTargetApplication;
+    BOOL _optionHotKeyCapturePending;
 }
 
 - (instancetype)initWithWindowController:(ClipboardWindowController *)windowController {
@@ -2609,6 +2708,9 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         [_windowController setPasteHandler:^{
             [weakSelf pasteFromPasteboard];
         }];
+        [_windowController setPasteBackHandler:^{
+            [weakSelf pasteResultBack];
+        }];
         [_windowController setSettingsHandler:^{
             [weakSelf openSettings];
         }];
@@ -2618,6 +2720,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                 return;
             }
             NSDictionary *item = strongSelf->_historyItems[(NSUInteger)index];
+            [strongSelf clearPasteBackTarget];
             strongSelf->_lastResultText = item[@"result"] ?: @"";
             [strongSelf->_windowController setSourceText:item[@"source"] ?: @"" resultText:strongSelf->_lastResultText];
             [strongSelf->_windowController setAnalysisText:@"Запустите обработку заново, чтобы получить свежий разбор правил."];
@@ -2625,7 +2728,9 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                                                 detail:@"You can edit the original text, process it again, or copy the saved result."];
         }];
         [_windowController setSourceChangeHandler:^(NSString *text) {
-            [weakSelf scheduleManualInputProcessingForText:text];
+            ClipboardCoordinator *strongSelf = weakSelf;
+            [strongSelf clearPasteBackTarget];
+            [strongSelf scheduleManualInputProcessingForText:text];
         }];
         [_windowController setTargetLanguageChangeHandler:^(NSString *language) {
             (void)language;
@@ -2637,6 +2742,18 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         }];
     }
     return self;
+}
+
+- (void)setPasteBackTargetApplication:(NSRunningApplication *)application {
+    _pasteBackTargetApplication = application;
+    _optionHotKeyCapturePending = (application != nil);
+    [_windowController setPasteBackAvailable:NO applicationName:nil];
+}
+
+- (void)clearPasteBackTarget {
+    _pasteBackTargetApplication = nil;
+    _optionHotKeyCapturePending = NO;
+    [_windowController setPasteBackAvailable:NO applicationName:nil];
 }
 
 - (void)processCurrentSourceAfterOptionChange {
@@ -2886,6 +3003,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         return NO;
     }
 
+    [self clearPasteBackTarget];
     _isProcessing = NO;
     _lastResultText = @"";
     _lastProcessedInput = text ?: @"";
@@ -2908,6 +3026,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         return NO;
     }
 
+    [self clearPasteBackTarget];
     _isProcessing = NO;
     _lastResultText = @"";
     _lastProcessedInput = text ?: @"";
@@ -2957,6 +3076,11 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         return;
     }
 
+    if (_optionHotKeyCapturePending) {
+        _lastSeenClipboardText = trimmed;
+        return;
+    }
+
     if ([_lastAppWrittenClipboardText isEqualToString:trimmed]) {
         _lastSeenClipboardText = trimmed;
         return;
@@ -2968,12 +3092,14 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 
     _lastSeenClipboardText = trimmed;
     if (_isProcessing) {
+        [self clearPasteBackTarget];
         _pendingClipboardText = trimmed;
         _pendingShouldBringToFront = NO;
         _pendingShouldCopyResultWhenReady = NO;
         return;
     }
 
+    [self clearPasteBackTarget];
     [self processClipboardText:trimmed bringToFront:NO copyWhenReady:NO];
 }
 
@@ -2993,6 +3119,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 
     TransformMode mode = [self modeForText:text];
     if (mode == TransformModeUnsupported) {
+        [self clearPasteBackTarget];
         [_windowController setProcessing:NO];
         [_windowController setModeText:@"Text skipped"
                                 detail:@"Copy or type text first, then process it."];
@@ -3004,6 +3131,12 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     _processingStartedAt = [NSDate date];
     _lastProcessedInput = text;
     _copyResultWhenReady = copyWhenReady;
+    if (copyWhenReady && _pasteBackTargetApplication && ![_pasteBackTargetApplication isTerminated]) {
+        [_windowController setPasteBackAvailable:YES
+                                 applicationName:_pasteBackTargetApplication.localizedName ?: @"the previous app"];
+    } else if (copyWhenReady) {
+        [self clearPasteBackTarget];
+    }
     [_windowController setProcessing:YES];
     [_windowController setSourceText:text resultText:@"Processing text..."];
     if (mode == TransformModePolishEnglishWithReview) {
@@ -3030,10 +3163,12 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         BOOL hasPendingDifferentText = strongSelf->_pendingClipboardText.length > 0 && ![strongSelf->_pendingClipboardText isEqualToString:text];
 
         if (hasPendingDifferentText) {
+            [strongSelf clearPasteBackTarget];
             strongSelf->_lastResultText = @"";
             [strongSelf->_windowController showProcessingPlaceholder];
             [strongSelf->_windowController showReviewPendingPlaceholder];
         } else if (error || result.length == 0) {
+            [strongSelf clearPasteBackTarget];
             NSString *message = error.localizedDescription ?: @"Couldn't process the text.";
             [strongSelf->_windowController setSourceText:text resultText:message];
             [strongSelf->_windowController setAnalysisText:@"Разбор недоступен, потому что обработка завершилась ошибкой."];
@@ -3121,11 +3256,64 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                             detail:@"Clipboard updated. You can paste the result wherever you need it."];
 }
 
+- (void)pasteResultBack {
+    NSRunningApplication *targetApplication = _pasteBackTargetApplication;
+    if (_lastResultText.length == 0) {
+        [_windowController setModeText:@"Nothing to paste"
+                                detail:@"Wait for the final text to finish processing."];
+        return;
+    }
+    if (!targetApplication || [targetApplication isTerminated]) {
+        [self clearPasteBackTarget];
+        [_windowController setModeText:@"Original app unavailable"
+                                detail:@"Copy the final text and paste it manually."];
+        return;
+    }
+
+    NSString *applicationName = targetApplication.localizedName ?: @"the previous app";
+    [self copyResultToPasteboard];
+    [self clearPasteBackTarget];
+    [_windowController setModeText:@"Pasting final text"
+                            detail:[NSString stringWithFormat:@"Returning to %@ and replacing the selected text.", applicationName]];
+
+    BOOL didActivate = [targetApplication activateWithOptions:NSApplicationActivateIgnoringOtherApps];
+    if (!didActivate) {
+        [_windowController setModeText:@"Couldn't return to the original app"
+                                detail:@"The final text is still copied to the clipboard."];
+        return;
+    }
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.20 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
+        CGEventRef keyDown = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, true);
+        CGEventRef keyUp = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, false);
+        if (keyDown && keyUp) {
+            CGEventSetFlags(keyDown, kCGEventFlagMaskCommand);
+            CGEventSetFlags(keyUp, kCGEventFlagMaskCommand);
+            CGEventPost(kCGHIDEventTap, keyDown);
+            CGEventPost(kCGHIDEventTap, keyUp);
+        }
+        if (keyDown) {
+            CFRelease(keyDown);
+        }
+        if (keyUp) {
+            CFRelease(keyUp);
+        }
+        if (source) {
+            CFRelease(source);
+        }
+        [self->_windowController setModeText:@"Pasted"
+                                      detail:[NSString stringWithFormat:@"Replaced the selected text in %@.", applicationName]];
+    });
+}
+
 - (void)pasteFromPasteboard {
+    [self clearPasteBackTarget];
     [self pasteFromPasteboardCopyWhenReady:NO];
 }
 
 - (void)pasteFromPasteboardAndCopyWhenReady {
+    _optionHotKeyCapturePending = NO;
     [self pasteFromPasteboardCopyWhenReady:YES];
 }
 
@@ -3133,6 +3321,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     NSString *text = [NSPasteboard.generalPasteboard stringForType:NSPasteboardTypeString];
     NSString *trimmed = [text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
     if (trimmed.length == 0) {
+        [self clearPasteBackTarget];
         [_windowController setModeText:@"Clipboard is empty"
                                 detail:@"Copy text first, then press Paste."];
         return;
@@ -3604,9 +3793,21 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
 }
 
 - (void)handleHotKey {
+    NSRunningApplication *sourceApplication = NSWorkspace.sharedWorkspace.frontmostApplication;
+    if (sourceApplication.processIdentifier == NSRunningApplication.currentApplication.processIdentifier) {
+        sourceApplication = nil;
+    }
+    NSInteger pasteboardChangeCount = NSPasteboard.generalPasteboard.changeCount;
+    [_coordinator setPasteBackTargetApplication:sourceApplication];
     [self copySelectionToPasteboard];
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.18 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [self->_windowController show];
+        if (NSPasteboard.generalPasteboard.changeCount == pasteboardChangeCount) {
+            [self->_coordinator clearPasteBackTarget];
+            [self->_windowController setModeText:@"Couldn't copy the selection"
+                                          detail:@"Select editable text in another app, then press Option+C again."];
+            return;
+        }
         [self->_coordinator pasteFromPasteboardAndCopyWhenReady];
     });
 }

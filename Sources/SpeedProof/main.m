@@ -1,9 +1,21 @@
 #import <AppKit/AppKit.h>
+#import <ApplicationServices/ApplicationServices.h>
 #import <Carbon/Carbon.h>
 #import <QuartzCore/QuartzCore.h>
 
 static const UInt32 SpeedProofHotKeyID = 1;
 static const OSType SpeedProofHotKeySignature = 'SPHK';
+
+static BOOL SPHasAutomationAccess(BOOL shouldPrompt) {
+    BOOL accessibilityTrusted = AXIsProcessTrusted();
+    BOOL eventPostingAllowed = CGPreflightPostEventAccess();
+    if ((!accessibilityTrusted || !eventPostingAllowed) && shouldPrompt) {
+        CGRequestPostEventAccess();
+        NSDictionary *options = @{(__bridge NSString *)kAXTrustedCheckOptionPrompt: @YES};
+        AXIsProcessTrustedWithOptions((__bridge CFDictionaryRef)options);
+    }
+    return accessibilityTrusted && eventPostingAllowed;
+}
 
 static NSColor *SPColor(NSUInteger hex) {
     return [NSColor colorWithSRGBRed:((hex >> 16) & 0xFF) / 255.0
@@ -3300,20 +3312,34 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                                 detail:@"The original app is unavailable, so the result was copied to the clipboard."];
         return;
     }
+    if (!SPHasAutomationAccess(YES)) {
+        [_windowController setModeText:@"Accessibility access required"
+                                detail:@"Allow SpeedProof in System Settings > Privacy & Security > Accessibility, then click Copy & Paste again."];
+        return;
+    }
 
     NSString *applicationName = targetApplication.localizedName ?: @"the previous app";
     [self clearPasteBackTarget];
     [_windowController setModeText:@"Pasting final text"
                             detail:[NSString stringWithFormat:@"Returning to %@ and replacing the selected text.", applicationName]];
 
-    BOOL didActivate = [targetApplication activateWithOptions:NSApplicationActivateIgnoringOtherApps];
+    [targetApplication unhide];
+    BOOL didActivate = [targetApplication activateWithOptions:NSApplicationActivateAllWindows];
+    if (!didActivate) {
+        didActivate = [targetApplication activateWithOptions:(NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps)];
+    }
     if (!didActivate) {
         [_windowController setModeText:@"Couldn't return to the original app"
                                 detail:@"The final text is still copied to the clipboard."];
         return;
     }
 
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.20 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (!targetApplication.active) {
+            [self->_windowController setModeText:@"Couldn't focus the original app"
+                                          detail:@"The final text is copied. Focus the destination and press Command+V."];
+            return;
+        }
         CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
         CGEventRef keyDown = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, true);
         CGEventRef keyUp = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, false);
@@ -3332,8 +3358,8 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         if (source) {
             CFRelease(source);
         }
-        [self->_windowController setModeText:@"Pasted"
-                                      detail:[NSString stringWithFormat:@"Replaced the selected text in %@.", applicationName]];
+        [self->_windowController setModeText:@"Paste command sent"
+                                      detail:[NSString stringWithFormat:@"Returned to %@ and sent Command+V.", applicationName]];
     });
 }
 
@@ -3882,6 +3908,13 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
 
 - (void)handleHotKey {
     NSRunningApplication *sourceApplication = [self pasteBackSourceApplication];
+    if (!SPHasAutomationAccess(YES)) {
+        [_coordinator setPasteBackTargetApplication:sourceApplication optionHotKeyPending:NO];
+        [_windowController show];
+        [_windowController setModeText:@"Accessibility access required"
+                                detail:@"Allow SpeedProof in System Settings > Privacy & Security > Accessibility, then press Option+C again."];
+        return;
+    }
     NSInteger pasteboardChangeCount = NSPasteboard.generalPasteboard.changeCount;
     [_coordinator setPasteBackTargetApplication:sourceApplication optionHotKeyPending:YES];
     [self copySelectionToPasteboard];

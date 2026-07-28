@@ -3664,7 +3664,7 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
         }
         NSRunningApplication *sourceApplication = NSWorkspace.sharedWorkspace.frontmostApplication;
         if (sourceApplication.processIdentifier == NSRunningApplication.currentApplication.processIdentifier) {
-            sourceApplication = nil;
+            return;
         }
         dispatch_async(dispatch_get_main_queue(), ^{
             [strongSelf->_coordinator setPasteBackTargetApplication:sourceApplication
@@ -3842,7 +3842,7 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
     if (source) {
         CFRelease(source);
     }
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.08 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.45 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         self->_isPostingSyntheticCopy = NO;
     });
 }

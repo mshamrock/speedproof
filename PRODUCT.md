@@ -18,7 +18,8 @@ documents.
 
 A regular `Command+C` leaves the current app in front. SpeedProof notices new
 plain text, applies local safety checks, and processes eligible text in the
-background.
+background. SpeedProof remembers the originating app so its contextual Paste
+action can replace the original selection with the finished text.
 
 ### Intentional shortcut workflow
 

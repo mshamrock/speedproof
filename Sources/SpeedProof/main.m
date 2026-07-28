@@ -2658,7 +2658,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 - (void)copyResultToPasteboard;
 - (void)pasteFromPasteboard;
 - (void)pasteFromPasteboardAndCopyWhenReady;
-- (void)setPasteBackTargetApplication:(NSRunningApplication *)application;
+- (void)setPasteBackTargetApplication:(NSRunningApplication *)application optionHotKeyPending:(BOOL)isOptionHotKeyPending;
 - (void)pasteResultBack;
 - (void)clearPasteBackTarget;
 - (void)openSettings;
@@ -2684,6 +2684,8 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     BOOL _copyResultWhenReady;
     BOOL _pendingShouldCopyResultWhenReady;
     NSRunningApplication *_pasteBackTargetApplication;
+    NSRunningApplication *_pendingPasteBackTargetApplication;
+    NSDate *_pasteBackTargetCapturedAt;
     BOOL _optionHotKeyCapturePending;
 }
 
@@ -2699,6 +2701,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         _pendingShouldBringToFront = NO;
         _copyResultWhenReady = NO;
         _pendingShouldCopyResultWhenReady = NO;
+        _pendingPasteBackTargetApplication = nil;
         _lastAppWrittenClipboardText = @"";
         _historyItems = [self loadHistoryItems];
         __weak ClipboardCoordinator *weakSelf = self;
@@ -2744,14 +2747,17 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     return self;
 }
 
-- (void)setPasteBackTargetApplication:(NSRunningApplication *)application {
+- (void)setPasteBackTargetApplication:(NSRunningApplication *)application optionHotKeyPending:(BOOL)isOptionHotKeyPending {
     _pasteBackTargetApplication = application;
-    _optionHotKeyCapturePending = (application != nil);
+    _pasteBackTargetCapturedAt = application ? [NSDate date] : nil;
+    _optionHotKeyCapturePending = (application != nil && isOptionHotKeyPending);
     [_windowController setPasteBackAvailable:NO applicationName:nil];
 }
 
 - (void)clearPasteBackTarget {
     _pasteBackTargetApplication = nil;
+    _pendingPasteBackTargetApplication = nil;
+    _pasteBackTargetCapturedAt = nil;
     _optionHotKeyCapturePending = NO;
     [_windowController setPasteBackAvailable:NO applicationName:nil];
 }
@@ -2772,6 +2778,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         _pendingClipboardText = currentText;
         _pendingShouldBringToFront = YES;
         _pendingShouldCopyResultWhenReady = NO;
+        _pendingPasteBackTargetApplication = _pasteBackTargetApplication;
         [_windowController showProcessingPlaceholder];
         [_windowController showReviewPendingPlaceholder];
         return;
@@ -3049,7 +3056,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 - (void)startMonitoring {
     NSPasteboard *pasteboard = NSPasteboard.generalPasteboard;
     _lastChangeCount = pasteboard.changeCount;
-    _pollTimer = [NSTimer scheduledTimerWithTimeInterval:0.8
+    _pollTimer = [NSTimer scheduledTimerWithTimeInterval:0.25
                                                   target:self
                                                 selector:@selector(checkPasteboard)
                                                 userInfo:nil
@@ -3091,15 +3098,25 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     }
 
     _lastSeenClipboardText = trimmed;
+    BOOL hasRecentlyCapturedTarget = _pasteBackTargetApplication
+        && _pasteBackTargetCapturedAt
+        && [[NSDate date] timeIntervalSinceDate:_pasteBackTargetCapturedAt] < 1.2;
+    NSRunningApplication *sourceApplication = hasRecentlyCapturedTarget
+        ? _pasteBackTargetApplication
+        : NSWorkspace.sharedWorkspace.frontmostApplication;
+    if (!hasRecentlyCapturedTarget
+        && sourceApplication.processIdentifier == NSRunningApplication.currentApplication.processIdentifier) {
+        sourceApplication = nil;
+    }
     if (_isProcessing) {
-        [self clearPasteBackTarget];
         _pendingClipboardText = trimmed;
         _pendingShouldBringToFront = NO;
         _pendingShouldCopyResultWhenReady = NO;
+        _pendingPasteBackTargetApplication = sourceApplication;
         return;
     }
 
-    [self clearPasteBackTarget];
+    [self setPasteBackTargetApplication:sourceApplication optionHotKeyPending:NO];
     [self processClipboardText:trimmed bringToFront:NO copyWhenReady:NO];
 }
 
@@ -3131,10 +3148,10 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     _processingStartedAt = [NSDate date];
     _lastProcessedInput = text;
     _copyResultWhenReady = copyWhenReady;
-    if (copyWhenReady && _pasteBackTargetApplication && ![_pasteBackTargetApplication isTerminated]) {
+    if (_pasteBackTargetApplication && ![_pasteBackTargetApplication isTerminated]) {
         [_windowController setPasteBackAvailable:YES
                                  applicationName:_pasteBackTargetApplication.localizedName ?: @"the previous app"];
-    } else if (copyWhenReady) {
+    } else if (_pasteBackTargetApplication) {
         [self clearPasteBackTarget];
     }
     [_windowController setProcessing:YES];
@@ -3163,7 +3180,6 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         BOOL hasPendingDifferentText = strongSelf->_pendingClipboardText.length > 0 && ![strongSelf->_pendingClipboardText isEqualToString:text];
 
         if (hasPendingDifferentText) {
-            [strongSelf clearPasteBackTarget];
             strongSelf->_lastResultText = @"";
             [strongSelf->_windowController showProcessingPlaceholder];
             [strongSelf->_windowController showReviewPendingPlaceholder];
@@ -3200,14 +3216,19 @@ typedef NS_ENUM(NSInteger, TransformMode) {
             NSString *pending = strongSelf->_pendingClipboardText;
             BOOL pendingShouldBringToFront = strongSelf->_pendingShouldBringToFront;
             BOOL pendingShouldCopyResultWhenReady = strongSelf->_pendingShouldCopyResultWhenReady;
+            NSRunningApplication *pendingPasteBackTarget = strongSelf->_pendingPasteBackTargetApplication;
             strongSelf->_pendingClipboardText = nil;
             strongSelf->_pendingShouldBringToFront = NO;
             strongSelf->_pendingShouldCopyResultWhenReady = NO;
+            strongSelf->_pendingPasteBackTargetApplication = nil;
+            [strongSelf setPasteBackTargetApplication:pendingPasteBackTarget
+                                  optionHotKeyPending:NO];
             [strongSelf processClipboardText:pending bringToFront:pendingShouldBringToFront copyWhenReady:pendingShouldCopyResultWhenReady];
         } else {
             strongSelf->_pendingClipboardText = nil;
             strongSelf->_pendingShouldBringToFront = NO;
             strongSelf->_pendingShouldCopyResultWhenReady = NO;
+            strongSelf->_pendingPasteBackTargetApplication = nil;
             strongSelf->_copyResultWhenReady = NO;
         }
     }];
@@ -3330,6 +3351,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         _pendingClipboardText = trimmed;
         _pendingShouldBringToFront = YES;
         _pendingShouldCopyResultWhenReady = copyWhenReady;
+        _pendingPasteBackTargetApplication = _pasteBackTargetApplication;
         [_windowController setSourceText:trimmed resultText:@"Queued. I'll process this as soon as the current text is done."];
         [_windowController showReviewPendingPlaceholder];
         return;
@@ -3610,6 +3632,8 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
     NSStatusItem *_statusItem;
     EventHotKeyRef _hotKeyRef;
     EventHandlerRef _hotKeyHandlerRef;
+    id _globalCopyMonitor;
+    BOOL _isPostingSyntheticCopy;
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
@@ -3620,6 +3644,33 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
     [_windowController show];
     [_coordinator startMonitoring];
     [self registerHotKey];
+    [self registerCommandCopyMonitor];
+}
+
+- (void)registerCommandCopyMonitor {
+    __weak AppDelegate *weakSelf = self;
+    _globalCopyMonitor = [NSEvent addGlobalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+                                                               handler:^(NSEvent *event) {
+        AppDelegate *strongSelf = weakSelf;
+        if (!strongSelf || strongSelf->_isPostingSyntheticCopy) {
+            return;
+        }
+        NSEventModifierFlags modifiers = event.modifierFlags & NSEventModifierFlagDeviceIndependentFlagsMask;
+        BOOL isCommandCopy = event.keyCode == kVK_ANSI_C
+            && (modifiers & NSEventModifierFlagCommand) != 0
+            && (modifiers & NSEventModifierFlagOption) == 0;
+        if (!isCommandCopy) {
+            return;
+        }
+        NSRunningApplication *sourceApplication = NSWorkspace.sharedWorkspace.frontmostApplication;
+        if (sourceApplication.processIdentifier == NSRunningApplication.currentApplication.processIdentifier) {
+            sourceApplication = nil;
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [strongSelf->_coordinator setPasteBackTargetApplication:sourceApplication
+                                                optionHotKeyPending:NO];
+        });
+    }];
 }
 
 - (NSImage *)statusBarIcon {
@@ -3774,6 +3825,7 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
 }
 
 - (void)copySelectionToPasteboard {
+    _isPostingSyntheticCopy = YES;
     CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
     CGEventRef keyDown = CGEventCreateKeyboardEvent(source, kVK_ANSI_C, true);
     CGEventRef keyUp = CGEventCreateKeyboardEvent(source, kVK_ANSI_C, false);
@@ -3790,6 +3842,9 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
     if (source) {
         CFRelease(source);
     }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.08 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        self->_isPostingSyntheticCopy = NO;
+    });
 }
 
 - (void)handleHotKey {
@@ -3798,7 +3853,7 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
         sourceApplication = nil;
     }
     NSInteger pasteboardChangeCount = NSPasteboard.generalPasteboard.changeCount;
-    [_coordinator setPasteBackTargetApplication:sourceApplication];
+    [_coordinator setPasteBackTargetApplication:sourceApplication optionHotKeyPending:YES];
     [self copySelectionToPasteboard];
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.18 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [self->_windowController show];
@@ -3827,6 +3882,10 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
 - (void)applicationWillTerminate:(NSNotification *)notification {
     (void)notification;
     [self unregisterHotKey];
+    if (_globalCopyMonitor) {
+        [NSEvent removeMonitor:_globalCopyMonitor];
+        _globalCopyMonitor = nil;
+    }
     if (_statusItem) {
         [NSStatusBar.systemStatusBar removeStatusItem:_statusItem];
         _statusItem = nil;

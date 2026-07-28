@@ -11,10 +11,10 @@ to the OpenAI Responses API using the API key supplied by the user.
 
 - Native AppKit interface for macOS 13 and newer.
 - Background clipboard processing without stealing focus.
+- A contextual **Paste** button can return to the app where regular
+  `Command+C` was pressed and replace the original selection.
 - `Option+C` copies the current selection, opens SpeedProof, processes the
   text, and places the result back on the clipboard.
-- A contextual **Paste** button can return to the app where `Option+C` was
-  pressed and replace the original selection with the finished text.
 - Manual text input with automatic processing after a short pause.
 - Configurable source and target languages.
 - Four persistent color schemes: Electric, Graphite, Arctic, and Evergreen.
@@ -90,7 +90,9 @@ export SPEEDPROOF_OPENAI_MODEL='your-model-id'
    locally.
 3. Eligible text is sent to the OpenAI Responses API with the selected
    language and tone instructions.
-4. The original text, final text, review, diff, timing, and recent items remain
+4. SpeedProof remembers the originating app so the finished text can replace
+   the original selection with **Paste**.
+5. The original text, final text, review, diff, timing, and recent items remain
    available in the local app interface.
 
 The sensitive-text checks are safeguards, not a guarantee. Review the

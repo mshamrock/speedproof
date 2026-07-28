@@ -1203,10 +1203,10 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                border:[self selectionBorderColor]
                radius:12];
     [self decorateButton:_pasteBackButton
-                   title:[self localized:@"paste"]
+                   title:[self localized:@"copyPaste"]
                   symbol:@"clipboard.fill"
                 iconSize:15
-                    font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
+                    font:[NSFont systemFontOfSize:13 weight:NSFontWeightSemibold]
               foreground:[self textColor]];
 
     [self styleButton:_settingsButton
@@ -1264,84 +1264,84 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         @"English": @{
             @"subtitle": @"One-click AI text cleanup and translation from your clipboard.",
             @"source": @"ORIGINAL TEXT", @"final": @"FINAL TEXT", @"review": @"Error Review", @"diff": @"Diff View",
-            @"recent": @"RECENT", @"paste": @"Paste", @"copy": @"Copy final text", @"tone": @"Tone",
+            @"recent": @"RECENT", @"paste": @"Paste", @"copy": @"Copy final text", @"copyPaste": @"Copy & Paste", @"tone": @"Tone",
             @"noRecent": @"No recent items yet.", @"finalPlaceholder": @"The final text will appear here.",
             @"diffPlaceholder": @"Changes will appear here.", @"reviewPlaceholder": @"Error review will appear here for English text cleanup."
         },
         @"Russian": @{
             @"subtitle": @"Быстро вычитывает, улучшает и переводит текст из буфера обмена.",
             @"source": @"ИСХОДНЫЙ ТЕКСТ", @"final": @"ГОТОВЫЙ ТЕКСТ", @"review": @"Разбор правок", @"diff": @"Что изменилось",
-            @"recent": @"ИСТОРИЯ", @"paste": @"Вставить", @"copy": @"Скопировать", @"tone": @"Стиль",
+            @"recent": @"ИСТОРИЯ", @"paste": @"Вставить", @"copy": @"Скопировать", @"copyPaste": @"Скопировать и вставить", @"tone": @"Стиль",
             @"noRecent": @"История пока пустая.", @"finalPlaceholder": @"Здесь появится готовый текст.",
             @"diffPlaceholder": @"Здесь появится сравнение исходного и готового текста.", @"reviewPlaceholder": @"Здесь появится разбор правок: что было исправлено и почему так лучше."
         },
         @"Spanish": @{
             @"subtitle": @"Limpieza y traducción de texto con IA desde el portapapeles.",
             @"source": @"TEXTO ORIGINAL", @"final": @"TEXTO FINAL", @"review": @"Revisión de errores", @"diff": @"Vista de cambios",
-            @"recent": @"RECIENTE", @"paste": @"Pegar", @"copy": @"Copiar texto final", @"tone": @"Tono",
+            @"recent": @"RECIENTE", @"paste": @"Pegar", @"copy": @"Copiar texto final", @"copyPaste": @"Copiar y pegar", @"tone": @"Tono",
             @"noRecent": @"Aún no hay elementos recientes.", @"finalPlaceholder": @"El texto final aparecerá aquí.",
             @"diffPlaceholder": @"Los cambios aparecerán aquí.", @"reviewPlaceholder": @"La revisión aparecerá aquí para mejorar texto en inglés."
         },
         @"French": @{
             @"subtitle": @"Nettoyage et traduction IA depuis le presse-papiers.",
             @"source": @"TEXTE ORIGINAL", @"final": @"TEXTE FINAL", @"review": @"Revue des erreurs", @"diff": @"Vue des changements",
-            @"recent": @"RÉCENT", @"paste": @"Coller", @"copy": @"Copier le texte final", @"tone": @"Ton",
+            @"recent": @"RÉCENT", @"paste": @"Coller", @"copy": @"Copier le texte final", @"copyPaste": @"Copier et coller", @"tone": @"Ton",
             @"noRecent": @"Aucun élément récent.", @"finalPlaceholder": @"Le texte final apparaîtra ici.",
             @"diffPlaceholder": @"Les changements apparaîtront ici.", @"reviewPlaceholder": @"La revue apparaîtra ici pour améliorer le texte anglais."
         },
         @"German": @{
             @"subtitle": @"KI-Textkorrektur und Übersetzung direkt aus der Zwischenablage.",
             @"source": @"AUSGANGSTEXT", @"final": @"FINALER TEXT", @"review": @"Fehleranalyse", @"diff": @"Änderungsansicht",
-            @"recent": @"ZULETZT", @"paste": @"Einfügen", @"copy": @"Finalen Text kopieren", @"tone": @"Ton",
+            @"recent": @"ZULETZT", @"paste": @"Einfügen", @"copy": @"Finalen Text kopieren", @"copyPaste": @"Kopieren & einfügen", @"tone": @"Ton",
             @"noRecent": @"Noch keine Einträge.", @"finalPlaceholder": @"Der finale Text erscheint hier.",
             @"diffPlaceholder": @"Änderungen erscheinen hier.", @"reviewPlaceholder": @"Die Fehleranalyse erscheint hier für englische Textkorrektur."
         },
         @"Portuguese": @{
             @"subtitle": @"Limpeza e tradução de texto com IA direto da área de transferência.",
             @"source": @"TEXTO ORIGINAL", @"final": @"TEXTO FINAL", @"review": @"Revisão de erros", @"diff": @"Ver alterações",
-            @"recent": @"RECENTE", @"paste": @"Colar", @"copy": @"Copiar texto final", @"tone": @"Tom",
+            @"recent": @"RECENTE", @"paste": @"Colar", @"copy": @"Copiar texto final", @"copyPaste": @"Copiar e colar", @"tone": @"Tom",
             @"noRecent": @"Ainda não há itens recentes.", @"finalPlaceholder": @"O texto final aparecerá aqui.",
             @"diffPlaceholder": @"As alterações aparecerão aqui.", @"reviewPlaceholder": @"A revisão aparecerá aqui para melhorar texto em inglês."
         },
         @"Italian": @{
             @"subtitle": @"Pulizia e traduzione AI dal tuo appunti.",
             @"source": @"TESTO ORIGINALE", @"final": @"TESTO FINALE", @"review": @"Revisione errori", @"diff": @"Vista modifiche",
-            @"recent": @"RECENTI", @"paste": @"Incolla", @"copy": @"Copia testo finale", @"tone": @"Tono",
+            @"recent": @"RECENTI", @"paste": @"Incolla", @"copy": @"Copia testo finale", @"copyPaste": @"Copia e incolla", @"tone": @"Tono",
             @"noRecent": @"Nessun elemento recente.", @"finalPlaceholder": @"Il testo finale apparirà qui.",
             @"diffPlaceholder": @"Le modifiche appariranno qui.", @"reviewPlaceholder": @"La revisione apparirà qui per migliorare il testo inglese."
         },
         @"Chinese": @{
             @"subtitle": @"从剪贴板一键进行 AI 文本清理和翻译。",
             @"source": @"原文", @"final": @"最终文本", @"review": @"错误解析", @"diff": @"差异视图",
-            @"recent": @"最近", @"paste": @"粘贴", @"copy": @"复制最终文本", @"tone": @"语气",
+            @"recent": @"最近", @"paste": @"粘贴", @"copy": @"复制最终文本", @"copyPaste": @"复制并粘贴", @"tone": @"语气",
             @"noRecent": @"暂无最近项目。", @"finalPlaceholder": @"最终文本会显示在这里。",
             @"diffPlaceholder": @"更改会显示在这里。", @"reviewPlaceholder": @"英文文本优化的错误解析会显示在这里。"
         },
         @"Japanese": @{
             @"subtitle": @"クリップボードから AI で文章を整え翻訳します。",
             @"source": @"元のテキスト", @"final": @"最終テキスト", @"review": @"エラー解説", @"diff": @"差分表示",
-            @"recent": @"最近", @"paste": @"貼り付け", @"copy": @"最終テキストをコピー", @"tone": @"トーン",
+            @"recent": @"最近", @"paste": @"貼り付け", @"copy": @"最終テキストをコピー", @"copyPaste": @"コピー＆貼り付け", @"tone": @"トーン",
             @"noRecent": @"最近の項目はありません。", @"finalPlaceholder": @"最終テキストがここに表示されます。",
             @"diffPlaceholder": @"変更点がここに表示されます。", @"reviewPlaceholder": @"英語改善のエラー解説がここに表示されます。"
         },
         @"Korean": @{
             @"subtitle": @"클립보드에서 AI 텍스트 정리와 번역을 한 번에.",
             @"source": @"원문", @"final": @"최종 텍스트", @"review": @"오류 리뷰", @"diff": @"차이 보기",
-            @"recent": @"최근", @"paste": @"붙여넣기", @"copy": @"최종 텍스트 복사", @"tone": @"톤",
+            @"recent": @"최근", @"paste": @"붙여넣기", @"copy": @"최종 텍스트 복사", @"copyPaste": @"복사 및 붙여넣기", @"tone": @"톤",
             @"noRecent": @"최근 항목이 없습니다.", @"finalPlaceholder": @"최종 텍스트가 여기에 표시됩니다.",
             @"diffPlaceholder": @"변경 내용이 여기에 표시됩니다.", @"reviewPlaceholder": @"영어 문장 개선을 위한 오류 리뷰가 여기에 표시됩니다."
         },
         @"Arabic": @{
             @"subtitle": @"تنظيف وترجمة النص بالذكاء الاصطناعي من الحافظة.",
             @"source": @"النص الأصلي", @"final": @"النص النهائي", @"review": @"مراجعة الأخطاء", @"diff": @"عرض الفروقات",
-            @"recent": @"الأحدث", @"paste": @"لصق", @"copy": @"نسخ النص النهائي", @"tone": @"النبرة",
+            @"recent": @"الأحدث", @"paste": @"لصق", @"copy": @"نسخ النص النهائي", @"copyPaste": @"نسخ ولصق", @"tone": @"النبرة",
             @"noRecent": @"لا توجد عناصر حديثة بعد.", @"finalPlaceholder": @"سيظهر النص النهائي هنا.",
             @"diffPlaceholder": @"ستظهر التغييرات هنا.", @"reviewPlaceholder": @"ستظهر مراجعة أخطاء تحسين الإنجليزية هنا."
         },
         @"Hindi": @{
             @"subtitle": @"क्लिपबोर्ड से AI टेक्स्ट सुधार और अनुवाद.",
             @"source": @"मूल टेक्स्ट", @"final": @"अंतिम टेक्स्ट", @"review": @"त्रुटि समीक्षा", @"diff": @"अंतर दृश्य",
-            @"recent": @"हाल का", @"paste": @"पेस्ट", @"copy": @"अंतिम टेक्स्ट कॉपी करें", @"tone": @"टोन",
+            @"recent": @"हाल का", @"paste": @"पेस्ट", @"copy": @"अंतिम टेक्स्ट कॉपी करें", @"copyPaste": @"कॉपी और पेस्ट", @"tone": @"टोन",
             @"noRecent": @"अभी कोई हाल का आइटम नहीं.", @"finalPlaceholder": @"अंतिम टेक्स्ट यहाँ दिखाई देगा.",
             @"diffPlaceholder": @"बदलाव यहाँ दिखाई देंगे.", @"reviewPlaceholder": @"अंग्रेज़ी सुधार के लिए त्रुटि समीक्षा यहाँ दिखाई देगी."
         }
@@ -1530,10 +1530,10 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                     font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
               foreground:[self accentForegroundColor]];
     [self decorateButton:_pasteBackButton
-                   title:[self localized:@"paste"]
+                   title:[self localized:@"copyPaste"]
                   symbol:@"clipboard.fill"
                 iconSize:15
-                    font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
+                    font:[NSFont systemFontOfSize:13 weight:NSFontWeightSemibold]
               foreground:[self textColor]];
     [self refreshLanguageButtons];
     [self refreshReviewTabs];
@@ -1742,20 +1742,20 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                   foreground:[self accentForegroundColor]];
 
         _pasteBackButton = [[HoverButton alloc] initWithFrame:NSZeroRect];
-        _pasteBackButton.title = @"Paste";
+        _pasteBackButton.title = @"Copy & Paste";
         _pasteBackButton.target = self;
         _pasteBackButton.action = @selector(pasteResultBack:);
         _pasteBackButton.bezelStyle = NSBezelStyleRegularSquare;
         _pasteBackButton.font = [NSFont systemFontOfSize:14 weight:NSFontWeightSemibold];
         _pasteBackButton.translatesAutoresizingMaskIntoConstraints = NO;
-        _pasteBackButton.hidden = YES;
+        _pasteBackButton.hidden = NO;
         _pasteBackButton.enabled = NO;
         [self styleButton:_pasteBackButton background:[self selectionColor] foreground:[self textColor] border:[self selectionBorderColor] radius:12];
         [self decorateButton:_pasteBackButton
-                       title:@"Paste"
+                       title:@"Copy & Paste"
                       symbol:@"clipboard.fill"
                     iconSize:15
-                        font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
+                        font:[NSFont systemFontOfSize:13 weight:NSFontWeightSemibold]
                   foreground:[self textColor]];
 
         _resultActionsStack = [NSStackView stackViewWithViews:@[_copyButton, _pasteBackButton]];
@@ -1764,7 +1764,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         _resultActionsStack.distribution = NSStackViewDistributionFillEqually;
         _resultActionsStack.spacing = 10;
         _resultActionsStack.translatesAutoresizingMaskIntoConstraints = NO;
-        _resultActionsWidthConstraint = [_resultActionsStack.widthAnchor constraintEqualToConstant:242];
+        _resultActionsWidthConstraint = [_resultActionsStack.widthAnchor constraintEqualToConstant:424];
         _resultActionsWidthConstraint.priority = NSLayoutPriorityDefaultHigh;
 
         _settingsButton = [[HoverButton alloc] initWithFrame:NSZeroRect];
@@ -2280,11 +2280,11 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 
 - (void)setPasteBackAvailable:(BOOL)isAvailable applicationName:(NSString *)applicationName {
     _pasteBackAvailable = isAvailable;
-    _pasteBackButton.hidden = !isAvailable;
-    _resultActionsWidthConstraint.constant = isAvailable ? 424 : 242;
+    _pasteBackButton.hidden = NO;
+    _resultActionsWidthConstraint.constant = 424;
     _pasteBackButton.toolTip = isAvailable
         ? [NSString stringWithFormat:@"Replace the selected text in %@.", applicationName.length > 0 ? applicationName : @"the previous app"]
-        : @"";
+        : @"Copy the final text. Automatic paste is available when SpeedProof knows the original app.";
     [self refreshCopyButton];
 }
 
@@ -2447,7 +2447,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     _copyButton.alphaValue = canCopy ? 1.0 : 0.82;
     _copyButton.layer.shadowOpacity = canCopy ? 0.18 : 0;
 
-    BOOL canPasteBack = canCopy && _pasteBackAvailable;
+    BOOL canPasteBack = canCopy;
     NSColor *pasteBackForeground = canPasteBack ? [self textColor] : [self mutedColor];
     [self styleButton:_pasteBackButton
            background:(canPasteBack ? [self selectionColor] : [self surface2Color])
@@ -2455,12 +2455,12 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                border:(canPasteBack ? [self selectionBorderColor] : [self borderColor])
                radius:12];
     [self decorateButton:_pasteBackButton
-                   title:[self localized:@"paste"]
+                   title:[self localized:@"copyPaste"]
                   symbol:@"clipboard.fill"
                 iconSize:15
-                    font:[NSFont systemFontOfSize:14 weight:NSFontWeightSemibold]
+                    font:[NSFont systemFontOfSize:13 weight:NSFontWeightSemibold]
               foreground:pasteBackForeground];
-    _pasteBackButton.hidden = !_pasteBackAvailable;
+    _pasteBackButton.hidden = NO;
     _pasteBackButton.enabled = canPasteBack;
     _pasteBackButton.alphaValue = canPasteBack ? 1.0 : 0.82;
     _pasteBackButton.layer.shadowOpacity = canPasteBack ? 0.10 : 0;
@@ -3293,15 +3293,15 @@ typedef NS_ENUM(NSInteger, TransformMode) {
                                 detail:@"Wait for the final text to finish processing."];
         return;
     }
+    [self copyResultToPasteboard];
     if (!targetApplication || [targetApplication isTerminated]) {
         [self clearPasteBackTarget];
-        [_windowController setModeText:@"Original app unavailable"
-                                detail:@"Copy the final text and paste it manually."];
+        [_windowController setModeText:@"Final text copied"
+                                detail:@"The original app is unavailable, so the result was copied to the clipboard."];
         return;
     }
 
     NSString *applicationName = targetApplication.localizedName ?: @"the previous app";
-    [self copyResultToPasteboard];
     [self clearPasteBackTarget];
     [_windowController setModeText:@"Pasting final text"
                             detail:[NSString stringWithFormat:@"Returning to %@ and replacing the selected text.", applicationName]];

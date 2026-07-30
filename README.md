@@ -43,6 +43,7 @@ xcode-select --install
 ```bash
 git clone https://github.com/mshamrock/speedproof.git
 cd speedproof
+./scripts/setup_local_signing.sh
 ./scripts/build_app.sh
 open ".build/SpeedProof.app"
 ```
@@ -50,7 +51,9 @@ open ".build/SpeedProof.app"
 The build script compiles the Objective-C/AppKit source, creates the application
 bundle at `.build/SpeedProof.app`, copies the icon and metadata, and signs the
 local build. A personal signing identity named `SpeedProof Local` is used when
-available; otherwise the app receives an ad hoc signature.
+available; otherwise the app receives an ad hoc signature. The signing setup is
+a one-time step that gives local rebuilds a stable identity, so macOS can retain
+Accessibility permission for Copy & Paste.
 
 Because local builds are not notarized, macOS may ask you to confirm that you
 want to open the app.
@@ -105,6 +108,7 @@ Sources/SpeedProof/main.m       AppKit app and OpenAI integration
 Resources/Info.plist            Application bundle metadata
 Resources/SpeedProof.icns       Application icon
 scripts/build_app.sh            Local build and signing
+scripts/setup_local_signing.sh  One-time stable local signing setup
 scripts/generate_app_icon.py    Icon asset generator
 ```
 

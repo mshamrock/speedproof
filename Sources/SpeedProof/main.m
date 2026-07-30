@@ -2819,6 +2819,9 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     BOOL _pendingShouldCopyResultWhenReady;
     NSRunningApplication *_pasteBackTargetApplication;
     NSRunningApplication *_pendingPasteBackTargetApplication;
+    AXUIElementRef _pasteBackTargetWindow;
+    AXUIElementRef _pasteBackTargetElement;
+    AXValueRef _pasteBackSelectedTextRange;
     NSDate *_pasteBackTargetCapturedAt;
     BOOL _optionHotKeyCapturePending;
     NSRunningApplication *(^_pasteBackTargetProvider)(void);
@@ -2882,10 +2885,74 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     return self;
 }
 
+- (void)releasePasteBackAccessibilityTarget {
+    if (_pasteBackTargetWindow) {
+        CFRelease(_pasteBackTargetWindow);
+        _pasteBackTargetWindow = NULL;
+    }
+    if (_pasteBackTargetElement) {
+        CFRelease(_pasteBackTargetElement);
+        _pasteBackTargetElement = NULL;
+    }
+    if (_pasteBackSelectedTextRange) {
+        CFRelease(_pasteBackSelectedTextRange);
+        _pasteBackSelectedTextRange = NULL;
+    }
+}
+
+- (void)capturePasteBackAccessibilityTargetForApplication:(NSRunningApplication *)application {
+    [self releasePasteBackAccessibilityTarget];
+    if (!application || !AXIsProcessTrusted()) {
+        return;
+    }
+
+    AXUIElementRef applicationElement = AXUIElementCreateApplication(application.processIdentifier);
+    if (!applicationElement) {
+        return;
+    }
+
+    CFTypeRef focusedWindow = NULL;
+    if (AXUIElementCopyAttributeValue(applicationElement,
+                                      kAXFocusedWindowAttribute,
+                                      &focusedWindow) == kAXErrorSuccess
+        && focusedWindow
+        && CFGetTypeID(focusedWindow) == AXUIElementGetTypeID()) {
+        _pasteBackTargetWindow = (AXUIElementRef)focusedWindow;
+    } else if (focusedWindow) {
+        CFRelease(focusedWindow);
+    }
+
+    CFTypeRef focusedElement = NULL;
+    if (AXUIElementCopyAttributeValue(applicationElement,
+                                      kAXFocusedUIElementAttribute,
+                                      &focusedElement) == kAXErrorSuccess
+        && focusedElement
+        && CFGetTypeID(focusedElement) == AXUIElementGetTypeID()) {
+        _pasteBackTargetElement = (AXUIElementRef)focusedElement;
+
+        CFTypeRef selectedRange = NULL;
+        if (AXUIElementCopyAttributeValue(_pasteBackTargetElement,
+                                          kAXSelectedTextRangeAttribute,
+                                          &selectedRange) == kAXErrorSuccess
+            && selectedRange
+            && CFGetTypeID(selectedRange) == AXValueGetTypeID()
+            && AXValueGetType((AXValueRef)selectedRange) == kAXValueCFRangeType) {
+            _pasteBackSelectedTextRange = (AXValueRef)selectedRange;
+        } else if (selectedRange) {
+            CFRelease(selectedRange);
+        }
+    } else if (focusedElement) {
+        CFRelease(focusedElement);
+    }
+
+    CFRelease(applicationElement);
+}
+
 - (void)setPasteBackTargetApplication:(NSRunningApplication *)application optionHotKeyPending:(BOOL)isOptionHotKeyPending {
     _pasteBackTargetApplication = application;
     _pasteBackTargetCapturedAt = application ? [NSDate date] : nil;
     _optionHotKeyCapturePending = (application != nil && isOptionHotKeyPending);
+    [self capturePasteBackAccessibilityTargetForApplication:application];
     [_windowController setPasteBackAvailable:NO applicationName:nil];
 }
 
@@ -2898,7 +2965,12 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     _pendingPasteBackTargetApplication = nil;
     _pasteBackTargetCapturedAt = nil;
     _optionHotKeyCapturePending = NO;
+    [self releasePasteBackAccessibilityTarget];
     [_windowController setPasteBackAvailable:NO applicationName:nil];
+}
+
+- (void)dealloc {
+    [self releasePasteBackAccessibilityTarget];
 }
 
 - (void)processCurrentSourceAfterOptionChange {
@@ -3440,9 +3512,18 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     }
 
     NSString *applicationName = targetApplication.localizedName ?: @"the previous app";
-    [self clearPasteBackTarget];
     [_windowController setModeText:@"Pasting final text"
                             detail:[NSString stringWithFormat:@"Returning to %@ and replacing the selected text.", applicationName]];
+
+    AXUIElementRef targetWindow = _pasteBackTargetWindow
+        ? (AXUIElementRef)CFRetain(_pasteBackTargetWindow)
+        : NULL;
+    AXUIElementRef targetElement = _pasteBackTargetElement
+        ? (AXUIElementRef)CFRetain(_pasteBackTargetElement)
+        : NULL;
+    AXValueRef selectedTextRange = _pasteBackSelectedTextRange
+        ? (AXValueRef)CFRetain(_pasteBackSelectedTextRange)
+        : NULL;
 
     [targetApplication unhide];
     BOOL didActivate = [targetApplication activateWithOptions:NSApplicationActivateAllWindows];
@@ -3450,6 +3531,15 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         didActivate = [targetApplication activateWithOptions:(NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps)];
     }
     if (!didActivate) {
+        if (targetWindow) {
+            CFRelease(targetWindow);
+        }
+        if (targetElement) {
+            CFRelease(targetElement);
+        }
+        if (selectedTextRange) {
+            CFRelease(selectedTextRange);
+        }
         [_windowController setModeText:@"Couldn't return to the original app"
                                 detail:@"The final text is still copied to the clipboard."];
         return;
@@ -3459,16 +3549,29 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         if (!targetApplication.active) {
             [self->_windowController setModeText:@"Couldn't focus the original app"
                                           detail:@"The final text is copied. Focus the destination and press Command+V."];
-            return;
         }
+
+        if (targetWindow) {
+            AXUIElementSetAttributeValue(targetWindow, kAXMainAttribute, kCFBooleanTrue);
+            AXUIElementSetAttributeValue(targetWindow, kAXFocusedAttribute, kCFBooleanTrue);
+        }
+        if (targetElement) {
+            AXUIElementSetAttributeValue(targetElement, kAXFocusedAttribute, kCFBooleanTrue);
+            if (selectedTextRange) {
+                AXUIElementSetAttributeValue(targetElement,
+                                             kAXSelectedTextRangeAttribute,
+                                             selectedTextRange);
+            }
+        }
+
         CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
         CGEventRef keyDown = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, true);
         CGEventRef keyUp = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, false);
         if (keyDown && keyUp) {
             CGEventSetFlags(keyDown, kCGEventFlagMaskCommand);
             CGEventSetFlags(keyUp, kCGEventFlagMaskCommand);
-            CGEventPost(kCGHIDEventTap, keyDown);
-            CGEventPost(kCGHIDEventTap, keyUp);
+            CGEventPostToPid(targetApplication.processIdentifier, keyDown);
+            CGEventPostToPid(targetApplication.processIdentifier, keyUp);
         }
         if (keyDown) {
             CFRelease(keyDown);
@@ -3479,6 +3582,16 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         if (source) {
             CFRelease(source);
         }
+        if (targetWindow) {
+            CFRelease(targetWindow);
+        }
+        if (targetElement) {
+            CFRelease(targetElement);
+        }
+        if (selectedTextRange) {
+            CFRelease(selectedTextRange);
+        }
+        [self clearPasteBackTarget];
         [self->_windowController setModeText:@"Paste command sent"
                                       detail:[NSString stringWithFormat:@"Returned to %@ and sent Command+V.", applicationName]];
     });

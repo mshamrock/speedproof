@@ -3598,7 +3598,12 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 }
 
 - (void)pasteFromPasteboard {
-    [self clearPasteBackTarget];
+    if (!_pasteBackTargetApplication || [_pasteBackTargetApplication isTerminated]) {
+        NSRunningApplication *sourceApplication = _pasteBackTargetProvider
+            ? _pasteBackTargetProvider()
+            : nil;
+        [self setPasteBackTargetApplication:sourceApplication optionHotKeyPending:NO];
+    }
     [self pasteFromPasteboardCopyWhenReady:NO];
 }
 

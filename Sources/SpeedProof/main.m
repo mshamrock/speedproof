@@ -3493,6 +3493,12 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 
 - (void)pasteResultBack {
     NSRunningApplication *targetApplication = _pasteBackTargetApplication;
+    if ((!targetApplication || [targetApplication isTerminated]) && _pasteBackTargetProvider) {
+        targetApplication = _pasteBackTargetProvider();
+        if (targetApplication && ![targetApplication isTerminated]) {
+            [self setPasteBackTargetApplication:targetApplication optionHotKeyPending:NO];
+        }
+    }
     if (_lastResultText.length == 0) {
         [_windowController setModeText:@"Nothing to paste"
                                 detail:@"Wait for the final text to finish processing."];
@@ -3524,6 +3530,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     AXValueRef selectedTextRange = _pasteBackSelectedTextRange
         ? (AXValueRef)CFRetain(_pasteBackSelectedTextRange)
         : NULL;
+    NSString *finalText = [_lastResultText copy];
 
     [targetApplication unhide];
     BOOL didActivate = [targetApplication activateWithOptions:NSApplicationActivateAllWindows];
@@ -3564,23 +3571,38 @@ typedef NS_ENUM(NSInteger, TransformMode) {
             }
         }
 
-        CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
-        CGEventRef keyDown = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, true);
-        CGEventRef keyUp = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, false);
-        if (keyDown && keyUp) {
-            CGEventSetFlags(keyDown, kCGEventFlagMaskCommand);
-            CGEventSetFlags(keyUp, kCGEventFlagMaskCommand);
-            CGEventPostToPid(targetApplication.processIdentifier, keyDown);
-            CGEventPostToPid(targetApplication.processIdentifier, keyUp);
+        BOOL replacedDirectly = NO;
+        if (targetElement) {
+            Boolean selectedTextIsSettable = false;
+            AXError settableError = AXUIElementIsAttributeSettable(targetElement,
+                                                                   kAXSelectedTextAttribute,
+                                                                   &selectedTextIsSettable);
+            if (settableError == kAXErrorSuccess && selectedTextIsSettable) {
+                replacedDirectly = AXUIElementSetAttributeValue(targetElement,
+                                                                kAXSelectedTextAttribute,
+                                                                (__bridge CFTypeRef)finalText) == kAXErrorSuccess;
+            }
         }
-        if (keyDown) {
-            CFRelease(keyDown);
-        }
-        if (keyUp) {
-            CFRelease(keyUp);
-        }
-        if (source) {
-            CFRelease(source);
+
+        if (!replacedDirectly) {
+            CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
+            CGEventRef keyDown = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, true);
+            CGEventRef keyUp = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, false);
+            if (keyDown && keyUp) {
+                CGEventSetFlags(keyDown, kCGEventFlagMaskCommand);
+                CGEventSetFlags(keyUp, kCGEventFlagMaskCommand);
+                CGEventPost(kCGHIDEventTap, keyDown);
+                CGEventPost(kCGHIDEventTap, keyUp);
+            }
+            if (keyDown) {
+                CFRelease(keyDown);
+            }
+            if (keyUp) {
+                CFRelease(keyUp);
+            }
+            if (source) {
+                CFRelease(source);
+            }
         }
         if (targetWindow) {
             CFRelease(targetWindow);
@@ -3592,8 +3614,10 @@ typedef NS_ENUM(NSInteger, TransformMode) {
             CFRelease(selectedTextRange);
         }
         [self clearPasteBackTarget];
-        [self->_windowController setModeText:@"Paste command sent"
-                                      detail:[NSString stringWithFormat:@"Returned to %@ and sent Command+V.", applicationName]];
+        [self->_windowController setModeText:(replacedDirectly ? @"Text replaced" : @"Paste command sent")
+                                      detail:(replacedDirectly
+                                          ? [NSString stringWithFormat:@"Replaced the selected text in %@.", applicationName]
+                                          : [NSString stringWithFormat:@"Returned to %@ and sent Command+V.", applicationName])];
     });
 }
 

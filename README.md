@@ -3,8 +3,9 @@
 SpeedProof is a native macOS utility that improves and translates text directly
 from the clipboard.
 
-It can work quietly in the background after a regular copy, or process the
-currently selected text with `Option+C`. The app sends eligible text directly
+It can work quietly in the background after a regular copy, process the
+currently selected text with `Option+C`, or wait and paste the finished result
+back with `Option+V`. The app sends eligible text directly
 to the OpenAI Responses API using the API key supplied by the user.
 
 ## Highlights
@@ -15,6 +16,8 @@ to the OpenAI Responses API using the API key supplied by the user.
   `Command+C` was pressed and replace the original selection.
 - `Option+C` copies the current selection, opens SpeedProof, processes the
   text, and places the result back on the clipboard.
+- `Option+V` keeps the current app in front, waits for processing to finish,
+  copies the result, and replaces the selected text automatically.
 - Manual text input with automatic processing after a short pause.
 - Configurable source and target languages.
 - Four persistent color schemes: Electric, Graphite, Arctic, and Evergreen.

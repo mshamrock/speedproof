@@ -3,7 +3,8 @@
 #import <Carbon/Carbon.h>
 #import <QuartzCore/QuartzCore.h>
 
-static const UInt32 SpeedProofHotKeyID = 1;
+static const UInt32 SpeedProofCopyHotKeyID = 1;
+static const UInt32 SpeedProofPasteHotKeyID = 2;
 static const OSType SpeedProofHotKeySignature = 'SPHK';
 
 static BOOL SPHasAutomationAccess(BOOL shouldPrompt) {
@@ -2465,7 +2466,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     }
 
     NSViewController *controller = [NSViewController new];
-    NSView *content = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 340, 220)];
+    NSView *content = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 340, 258)];
     content.wantsLayer = YES;
     content.layer.backgroundColor = [self surfaceColor].CGColor;
 
@@ -2480,6 +2481,8 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 
     NSView *optionRow = [self keyboardShortcutRowWithKey:@"⌥ C"
                                             description:@"Copy the selection, open SpeedProof, and process it."];
+    NSView *optionPasteRow = [self keyboardShortcutRowWithKey:@"⌥ V"
+                                                 description:@"Wait for the result and replace the text without opening SpeedProof."];
     NSView *commandRow = [self keyboardShortcutRowWithKey:@"⌘ C"
                                              description:@"Process copied text quietly in the background."];
 
@@ -2488,7 +2491,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     permissionHint.textColor = [self mutedColor];
     permissionHint.maximumNumberOfLines = 2;
 
-    NSStackView *stack = [NSStackView stackViewWithViews:@[title, subtitle, optionRow, commandRow, permissionHint]];
+    NSStackView *stack = [NSStackView stackViewWithViews:@[title, subtitle, optionRow, optionPasteRow, commandRow, permissionHint]];
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     stack.alignment = NSLayoutAttributeLeading;
     stack.spacing = 10;
@@ -2501,6 +2504,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         [stack.topAnchor constraintEqualToAnchor:content.topAnchor constant:16],
         [stack.bottomAnchor constraintLessThanOrEqualToAnchor:content.bottomAnchor constant:-16],
         [optionRow.widthAnchor constraintEqualToAnchor:stack.widthAnchor],
+        [optionPasteRow.widthAnchor constraintEqualToAnchor:stack.widthAnchor],
         [commandRow.widthAnchor constraintEqualToAnchor:stack.widthAnchor],
         [permissionHint.widthAnchor constraintEqualToAnchor:stack.widthAnchor]
     ]];
@@ -2508,7 +2512,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     controller.view = content;
     _helpPopover = [NSPopover new];
     _helpPopover.contentViewController = controller;
-    _helpPopover.contentSize = NSMakeSize(340, 220);
+    _helpPopover.contentSize = NSMakeSize(340, 258);
     _helpPopover.behavior = NSPopoverBehaviorTransient;
     _helpPopover.animates = YES;
     _helpPopover.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
@@ -2791,6 +2795,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 - (void)copyResultToPasteboard;
 - (void)pasteFromPasteboard;
 - (void)pasteFromPasteboardAndCopyWhenReady;
+- (void)pasteResultBackWhenReady;
 - (void)setPasteBackTargetApplication:(NSRunningApplication *)application optionHotKeyPending:(BOOL)isOptionHotKeyPending;
 - (void)setPasteBackTargetProvider:(NSRunningApplication *(^)(void))provider;
 - (void)pasteResultBack;
@@ -2816,6 +2821,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     BOOL _isProcessing;
     BOOL _pendingShouldBringToFront;
     BOOL _copyResultWhenReady;
+    BOOL _pasteBackWhenReady;
     BOOL _pendingShouldCopyResultWhenReady;
     NSRunningApplication *_pasteBackTargetApplication;
     NSRunningApplication *_pendingPasteBackTargetApplication;
@@ -2838,6 +2844,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
         _pendingClipboardText = nil;
         _pendingShouldBringToFront = NO;
         _copyResultWhenReady = NO;
+        _pasteBackWhenReady = NO;
         _pendingShouldCopyResultWhenReady = NO;
         _pendingPasteBackTargetApplication = nil;
         _lastAppWrittenClipboardText = @"";
@@ -2965,6 +2972,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
     _pendingPasteBackTargetApplication = nil;
     _pasteBackTargetCapturedAt = nil;
     _optionHotKeyCapturePending = NO;
+    _pasteBackWhenReady = NO;
     [self releasePasteBackAccessibilityTarget];
     [_windowController setPasteBackAvailable:NO applicationName:nil];
 }
@@ -3421,7 +3429,9 @@ typedef NS_ENUM(NSInteger, TransformMode) {
             [strongSelf->_windowController setModeText:@"Done"
                                                 detail:[NSString stringWithFormat:@"Processing took %.1f s. You can copy the final text right away.", elapsed]];
             [strongSelf addHistoryItemWithSource:text result:finalText mode:mode];
-            if (strongSelf->_copyResultWhenReady) {
+            if (strongSelf->_pasteBackWhenReady) {
+                [strongSelf pasteResultBack];
+            } else if (strongSelf->_copyResultWhenReady) {
                 [strongSelf copyResultToPasteboard];
             }
         }
@@ -3446,6 +3456,34 @@ typedef NS_ENUM(NSInteger, TransformMode) {
             strongSelf->_copyResultWhenReady = NO;
         }
     }];
+}
+
+- (void)pasteResultBackWhenReady {
+    _pasteBackWhenReady = YES;
+    if (_isProcessing) {
+        return;
+    }
+
+    NSString *clipboardText = [NSPasteboard.generalPasteboard stringForType:NSPasteboardTypeString] ?: @"";
+    NSString *trimmed = [clipboardText stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    BOOL resultMatchesClipboard = _lastResultText.length > 0
+        && ([_lastProcessedInput isEqualToString:trimmed]
+            || [_lastResultText isEqualToString:trimmed]
+            || [_lastAppWrittenClipboardText isEqualToString:trimmed]);
+    if (resultMatchesClipboard) {
+        [self pasteResultBack];
+        return;
+    }
+
+    if (trimmed.length == 0) {
+        _pasteBackWhenReady = NO;
+        [_windowController setModeText:@"Clipboard is empty"
+                                detail:@"Copy text before pressing Option+V."];
+        return;
+    }
+
+    _lastSeenClipboardText = trimmed;
+    [self processClipboardText:trimmed bringToFront:NO copyWhenReady:NO];
 }
 
 - (void)startProcessingTimer {
@@ -3903,6 +3941,7 @@ typedef NS_ENUM(NSInteger, TransformMode) {
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 - (void)handleHotKey;
+- (void)handlePasteHotKey;
 @end
 
 static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRef event, void *userData) {
@@ -3915,12 +3954,18 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
                                         sizeof(hotKeyID),
                                         NULL,
                                         &hotKeyID);
-    if (status != noErr || hotKeyID.signature != SpeedProofHotKeySignature || hotKeyID.id != SpeedProofHotKeyID) {
+    if (status != noErr || hotKeyID.signature != SpeedProofHotKeySignature) {
         return eventNotHandledErr;
     }
 
     AppDelegate *delegate = (__bridge AppDelegate *)userData;
-    [delegate handleHotKey];
+    if (hotKeyID.id == SpeedProofCopyHotKeyID) {
+        [delegate handleHotKey];
+    } else if (hotKeyID.id == SpeedProofPasteHotKeyID) {
+        [delegate handlePasteHotKey];
+    } else {
+        return eventNotHandledErr;
+    }
     return noErr;
 }
 
@@ -3929,6 +3974,7 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
     ClipboardCoordinator *_coordinator;
     NSStatusItem *_statusItem;
     EventHotKeyRef _hotKeyRef;
+    EventHotKeyRef _pasteHotKeyRef;
     EventHandlerRef _hotKeyHandlerRef;
     id _globalCopyMonitor;
     BOOL _isPostingSyntheticCopy;
@@ -4053,6 +4099,13 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
     pasteItem.target = self;
     [menu addItem:pasteItem];
 
+    NSMenuItem *pasteResultItem = [[NSMenuItem alloc] initWithTitle:@"Paste Result in Previous App"
+                                                             action:@selector(pasteResultFromMenuBar:)
+                                                      keyEquivalent:@"v"];
+    pasteResultItem.keyEquivalentModifierMask = NSEventModifierFlagOption;
+    pasteResultItem.target = self;
+    [menu addItem:pasteResultItem];
+
     NSMenuItem *copyItem = [[NSMenuItem alloc] initWithTitle:@"Copy Final Text"
                                                       action:@selector(copyFromMenuBar:)
                                                keyEquivalent:@""];
@@ -4093,6 +4146,13 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
     [_coordinator copyResultToPasteboard];
 }
 
+- (void)pasteResultFromMenuBar:(id)sender {
+    (void)sender;
+    NSRunningApplication *sourceApplication = [self pasteBackSourceApplication];
+    [_coordinator setPasteBackTargetApplication:sourceApplication optionHotKeyPending:NO];
+    [_coordinator pasteResultBackWhenReady];
+}
+
 - (void)openSettingsFromMenuBar:(id)sender {
     (void)sender;
     [_windowController show];
@@ -4117,7 +4177,7 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
 
     EventHotKeyID hotKeyID = {
         .signature = SpeedProofHotKeySignature,
-        .id = SpeedProofHotKeyID
+        .id = SpeedProofCopyHotKeyID
     };
     OSStatus hotKeyStatus = RegisterEventHotKey(kVK_ANSI_C,
                                                 optionKey,
@@ -4132,6 +4192,22 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
         }
         [_windowController setModeText:@"Hotkey unavailable"
                                 detail:@"Option+C is already used by another app or system shortcut."];
+        return;
+    }
+
+    EventHotKeyID pasteHotKeyID = {
+        .signature = SpeedProofHotKeySignature,
+        .id = SpeedProofPasteHotKeyID
+    };
+    OSStatus pasteHotKeyStatus = RegisterEventHotKey(kVK_ANSI_V,
+                                                     optionKey,
+                                                     pasteHotKeyID,
+                                                     GetApplicationEventTarget(),
+                                                     0,
+                                                     &_pasteHotKeyRef);
+    if (pasteHotKeyStatus != noErr) {
+        [_windowController setModeText:@"Paste hotkey unavailable"
+                                detail:@"Option+V is already used by another app or system shortcut."];
     }
 }
 
@@ -4139,6 +4215,10 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
     if (_hotKeyRef) {
         UnregisterEventHotKey(_hotKeyRef);
         _hotKeyRef = NULL;
+    }
+    if (_pasteHotKeyRef) {
+        UnregisterEventHotKey(_pasteHotKeyRef);
+        _pasteHotKeyRef = NULL;
     }
     if (_hotKeyHandlerRef) {
         RemoveEventHandler(_hotKeyHandlerRef);
@@ -4191,6 +4271,17 @@ static OSStatus SpeedProofHotKeyHandler(EventHandlerCallRef nextHandler, EventRe
         }
         [self->_coordinator pasteFromPasteboardAndCopyWhenReady];
     });
+}
+
+- (void)handlePasteHotKey {
+    NSRunningApplication *sourceApplication = [self pasteBackSourceApplication];
+    [_coordinator setPasteBackTargetApplication:sourceApplication optionHotKeyPending:NO];
+    if (!SPHasAutomationAccess(YES)) {
+        [_windowController setModeText:@"Accessibility access required"
+                                detail:@"Allow SpeedProof in System Settings > Privacy & Security > Accessibility, then press Option+V again."];
+        return;
+    }
+    [_coordinator pasteResultBackWhenReady];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {

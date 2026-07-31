@@ -28,6 +28,10 @@ the text, and copies the finished result back to the clipboard. A contextual
 Paste action returns to the originating app and replaces the original
 selection with the finished text.
 
+`Option+V` keeps the originating app in front. It waits for an in-flight result
+or starts processing the current clipboard text, then copies and pastes the
+finished result back into the active field automatically.
+
 ### Manual workflow
 
 Text can be pasted or typed directly into SpeedProof. Typed text is processed
@@ -53,7 +57,7 @@ after a short pause.
 - Automatic Polite tone for likely messages and direct requests.
 - Error Review and Diff View for English cleanup.
 - Recent-item history stored in local application preferences.
-- Menu bar commands and a global `Option+C` shortcut.
+- Menu bar commands and global `Option+C` and `Option+V` shortcuts.
 - Local checks for likely credentials, private keys, tokens, encoded secrets,
   and payment card numbers.
 - Local skip for standalone email addresses.

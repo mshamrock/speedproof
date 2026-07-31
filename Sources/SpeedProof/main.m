@@ -206,6 +206,17 @@ static NSColor *SPColor(NSUInteger hex) {
     }];
     [logo appendAttributedString:accent];
 
+    NSString *version = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+    if (version.length > 0) {
+        NSAttributedString *versionLabel = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@" v%@", version]
+                                                                           attributes:@{
+            NSFontAttributeName: [NSFont systemFontOfSize:8.5 weight:NSFontWeightSemibold],
+            NSForegroundColorAttributeName: [_logoTextColor colorWithAlphaComponent:0.55],
+            NSBaselineOffsetAttributeName: @13
+        }];
+        [logo appendAttributedString:versionLabel];
+    }
+
     NSShadow *shadow = [NSShadow new];
     shadow.shadowColor = [NSColor colorWithWhite:0 alpha:0.35];
     shadow.shadowBlurRadius = 6;

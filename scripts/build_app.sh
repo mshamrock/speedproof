@@ -10,6 +10,7 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 SIGNING_IDENTITY="SpeedProof Local"
 LOCAL_KEYCHAIN="$HOME/Library/Keychains/SpeedProof.keychain-db"
 LOCAL_KEYCHAIN_PASSWORD_FILE="$HOME/Library/Application Support/SpeedProof/signing-keychain-password"
+USE_LOCAL_SIGNING="${SPEEDPROOF_USE_LOCAL_SIGNING:-1}"
 
 cd "$ROOT_DIR"
 mkdir -p "$ROOT_DIR/.build/cache/clang"
@@ -21,6 +22,8 @@ mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 clang \
   -fobjc-arc \
   -fmodules \
+  -arch arm64 \
+  -arch x86_64 \
   -mmacosx-version-min=13.0 \
   -framework Cocoa \
   -framework Carbon \
@@ -29,21 +32,24 @@ clang \
 cp "$ROOT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"
 cp "$ROOT_DIR/Resources/SpeedProof.icns" "$RESOURCES_DIR/SpeedProof.icns"
 
-if [[ -f "$LOCAL_KEYCHAIN" && -f "$LOCAL_KEYCHAIN_PASSWORD_FILE" ]]; then
+if [[ "$USE_LOCAL_SIGNING" == "1" && -f "$LOCAL_KEYCHAIN" && -f "$LOCAL_KEYCHAIN_PASSWORD_FILE" ]]; then
   security unlock-keychain \
     -p "$(cat "$LOCAL_KEYCHAIN_PASSWORD_FILE")" \
-    "$LOCAL_KEYCHAIN"
+    "$LOCAL_KEYCHAIN" || true
 fi
 
-SIGNING_HASH="$(
-  security find-identity -v -p codesigning "$LOCAL_KEYCHAIN" 2>/dev/null |
-    awk -v name="\"$SIGNING_IDENTITY\"" '$0 ~ name { print $2; exit }'
-)"
-if [[ -z "$SIGNING_HASH" && -f "$LOCAL_KEYCHAIN" ]]; then
+SIGNING_HASH=""
+if [[ "$USE_LOCAL_SIGNING" == "1" ]]; then
   SIGNING_HASH="$(
-    security find-certificate -c "$SIGNING_IDENTITY" -Z "$LOCAL_KEYCHAIN" 2>/dev/null |
-      awk '/SHA-1 hash:/{ print $3; exit }'
+    security find-identity -v -p codesigning "$LOCAL_KEYCHAIN" 2>/dev/null |
+      awk -v name="\"$SIGNING_IDENTITY\"" '$0 ~ name { print $2; exit }'
   )"
+  if [[ -z "$SIGNING_HASH" && -f "$LOCAL_KEYCHAIN" ]]; then
+    SIGNING_HASH="$(
+      security find-certificate -c "$SIGNING_IDENTITY" -Z "$LOCAL_KEYCHAIN" 2>/dev/null |
+        awk '/SHA-1 hash:/{ print $3; exit }'
+    )"
+  fi
 fi
 
 if [[ -n "$SIGNING_HASH" ]]; then

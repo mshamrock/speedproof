@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SpeedProof cleans up and translates clipboard text, then returns it to supported editable fields on your Mac.">
+  <meta name="theme-color" content="#111318">
+  <meta property="og:title" content="SpeedProof for macOS">
+  <meta property="og:description" content="Clean up, translate, and paste text back without breaking your flow.">
+  <meta property="og:image" content="/assets/app-icon.png">
+  <title>SpeedProof — AI proofreading at the speed of copy & paste</title>
+  <link rel="icon" type="image/png" href="/assets/app-icon.png">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <!--
+    THESIS: Text moves through SpeedProof like a bounded electrical signal; this refuses the generic AI-chat landing page.
+    OWN-WORLD: Porcelain daylight canvas, ink instrument panels, proof blue, electric yellow, and one precise processing rail.
+    STORY: Visitors see selected text become polished, understand the shortcut loop, verify the privacy boundary, and download the Mac app.
+    FIRST VIEWPORT: Compact nav and centered offer above a full-width working product demonstration; download remains visible before the fold.
+    FORM: Desktop telemetry instrument, sixth grounded direction, staged as a live before-to-after signal path; seed 4ced6044.
+  -->
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header" aria-label="Primary navigation">
+    <a class="brand" href="#top" aria-label="SpeedProof home">
+      <img src="/assets/app-icon.png" width="40" height="40" alt="">
+      <span>Speed<span class="brand-proof">Proof</span></span>
+      <span class="version">v0.1.0</span>
+    </a>
+    <nav class="nav-links" aria-label="Page sections">
+      <a href="#how">How it works</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/mshamrock/speedproof" target="_blank" rel="noreferrer">GitHub</a>
+    </nav>
+    <a class="button button-small button-dark" href="/downloads/SpeedProof-v0.1.0-macOS.zip" download>
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
+      Download
+    </a>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-copy">
+        <p class="availability"><span></span> Native macOS app · Open source</p>
+        <h1>SpeedProof for macOS</h1>
+        <p class="hero-lede">Clean up, translate, and paste text back without leaving the app you are working in.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="/downloads/SpeedProof-v0.1.0-macOS.zip" download>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
+            Download for macOS
+          </a>
+          <button class="button button-quiet" type="button" data-run-demo>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 5 8 7-8 7V5Z"/></svg>
+            See it work
+          </button>
+        </div>
+        <p class="requirement">Requires macOS 13 or newer and your own OpenAI API key.</p>
+      </div>
+
+      <div class="product-stage" aria-label="Interactive SpeedProof demonstration">
+        <div class="app-window" data-demo-state="ready">
+          <div class="app-titlebar">
+            <div class="traffic-lights" aria-hidden="true"><span></span><span></span><span></span></div>
+            <span class="window-title">SpeedProof</span>
+            <span class="window-status" role="status" aria-live="polite"><i></i> Ready</span>
+          </div>
+
+          <div class="demo-header">
+            <div class="demo-mark"><img src="/assets/app-icon.png" width="56" height="56" alt=""></div>
+            <div>
+              <p class="demo-brand">Speed<span>Proof</span></p>
+              <p>One shortcut. A cleaner message. Back where it belongs.</p>
+            </div>
+          </div>
+
+          <div class="proof-workspace">
+            <div class="proof-column proof-source">
+              <span class="proof-label">Selected text</span>
+              <p>hi alice can you send the report by friday thanks</p>
+              <span class="source-app">in Mail</span>
+            </div>
+
+            <div class="proof-signal" aria-hidden="true">
+              <span class="rail"></span>
+              <span class="rail-dot rail-start"></span>
+              <span class="rail-dot rail-end"></span>
+              <span class="pulse"></span>
+              <kbd>⌥ V</kbd>
+            </div>
+
+            <div class="proof-column proof-result" aria-live="polite">
+              <span class="proof-label">Pasted back</span>
+              <p>Hi Alice, could you please send the report by Friday? Thank you.</p>
+              <span class="result-state"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> Replaced in Mail</span>
+            </div>
+          </div>
+
+          <div class="demo-footer">
+            <span><strong>Polite</strong> tone detected</span>
+            <button type="button" data-run-demo>Run again</button>
+          </div>
+        </div>
+      </div>
+      <a class="scroll-cue" href="#how">Explore the workflow <span aria-hidden="true">↓</span></a>
+    </section>
+
+    <section class="mechanism section" id="how">
+      <div class="section-heading">
+        <p class="section-kicker">The fast path</p>
+        <h2>Proofreading that stays out of your way.</h2>
+        <p>SpeedProof works with text selected in standard editable fields across Mail, Slack, browsers, documents, and other macOS apps.</p>
+      </div>
+
+      <div class="shortcut-flow">
+        <article>
+          <kbd>⌥ C</kbd>
+          <div>
+            <h3>Review before replacing</h3>
+            <p>Copy the current selection, open SpeedProof, inspect the result and its changes.</p>
+          </div>
+        </article>
+        <span class="flow-line" aria-hidden="true"></span>
+        <article>
+          <kbd>⌥ V</kbd>
+          <div>
+            <h3>Fix it in place</h3>
+            <p>Process the selected text in the background and paste the result back automatically.</p>
+          </div>
+        </article>
+        <span class="flow-line" aria-hidden="true"></span>
+        <article>
+          <kbd>⌘ C</kbd>
+          <div>
+            <h3>Let the clipboard listen</h3>
+            <p>Regular copied text can be processed quietly without bringing SpeedProof to the front.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="capabilities section" aria-labelledby="capabilities-title">
+      <div class="capability-intro">
+        <p class="section-kicker">Built for real writing</p>
+        <h2 id="capabilities-title">One small utility. Your whole writing loop.</h2>
+      </div>
+      <div class="capability-list">
+        <article>
+          <span>01</span>
+          <div><h3>Polish or translate</h3><p>Improve grammar, punctuation and phrasing, or move between a configurable language pair.</p></div>
+        </article>
+        <article>
+          <span>02</span>
+          <div><h3>Choose the voice</h3><p>Keep it neutral, make it polite, shorten it, or sound more confident. Messages can switch to Polite automatically.</p></div>
+        </article>
+        <article>
+          <span>03</span>
+          <div><h3>Understand every change</h3><p>Error Review explains useful language rules. Diff View shows exactly what moved.</p></div>
+        </article>
+        <article>
+          <span>04</span>
+          <div><h3>Work your way</h3><p>Use global shortcuts, clipboard monitoring, menu bar controls, or type directly into the app.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="privacy section" id="privacy">
+      <div class="privacy-copy">
+        <p class="section-kicker">Know where your text goes</p>
+        <h2>No SpeedProof cloud. No mystery middleman.</h2>
+        <p>The app sends eligible text directly from your Mac to OpenAI using the API key you provide. SpeedProof has no operated backend, and your settings and recent history stay on your Mac.</p>
+        <a class="text-link" href="https://github.com/mshamrock/speedproof/blob/main/PRIVACY.md" target="_blank" rel="noreferrer">Read the full privacy notes <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="data-path" aria-label="Text data path">
+        <div><img src="/assets/app-icon.png" width="44" height="44" alt=""><strong>Your Mac</strong><span>Local safety checks</span></div>
+        <span class="path-arrow" aria-hidden="true">→</span>
+        <div><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3a5 5 0 0 1 4.9 4h.6a3.5 3.5 0 0 1 .5 7H7a4 4 0 0 1-.6-8A6 6 0 0 1 12 3Z"/></svg><strong>OpenAI</strong><span>Direct API request</span></div>
+        <span class="path-arrow" aria-hidden="true">→</span>
+        <div><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><strong>Your app</strong><span>Result pasted back</span></div>
+      </div>
+      <p class="privacy-note">Local checks stop obvious standalone emails, credentials, private keys, tokens, encoded secrets, and payment card numbers. They are safeguards, not a guarantee.</p>
+    </section>
+
+    <section class="install section" id="install">
+      <div class="section-heading">
+        <p class="section-kicker">Install the preview</p>
+        <h2>On your Mac in three steps.</h2>
+        <p>SpeedProof is currently an open-source preview build. It is ad-hoc signed and does not yet have a Developer ID signature or Apple notarization.</p>
+      </div>
+      <ol class="install-steps">
+        <li><span>1</span><div><h3>Download and unzip</h3><p>Move <strong>SpeedProof.app</strong> to your Applications folder.</p></div></li>
+        <li><span>2</span><div><h3>Open it deliberately</h3><p>Control-click the app and choose <strong>Open</strong>. If macOS still blocks it, use <strong>Privacy &amp; Security → Open Anyway</strong>.</p></div></li>
+        <li><span>3</span><div><h3>Add your API key</h3><p>Open Settings, add your OpenAI API key, then allow Accessibility for paste-back shortcuts.</p></div></li>
+      </ol>
+      <div class="install-actions">
+        <a class="button button-primary" href="/downloads/SpeedProof-v0.1.0-macOS.zip" download>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
+          Download SpeedProof v0.1.0
+        </a>
+        <span>macOS 13+ · Apple Silicon & Intel · ZIP · <a href="/downloads/SHA256SUMS.txt">SHA-256</a></span>
+      </div>
+    </section>
+
+    <section class="faq section" aria-labelledby="faq-title">
+      <div class="section-heading compact">
+        <p class="section-kicker">Good to know</p>
+        <h2 id="faq-title">Before you switch it on.</h2>
+      </div>
+      <div class="faq-list">
+        <details>
+          <summary>Why does SpeedProof need Accessibility access?</summary>
+          <p>Accessibility lets the global shortcuts capture your selected text and return the finished version to supported editable fields. Clipboard-only processing still works without paste-back.</p>
+        </details>
+        <details>
+          <summary>Do I need an OpenAI subscription?</summary>
+          <p>You need an OpenAI API key with API billing enabled. A ChatGPT subscription does not automatically include API usage.</p>
+        </details>
+        <details>
+          <summary>Is it safe for confidential text?</summary>
+          <p>Do not treat clipboard safeguards as a complete data-loss-prevention system. Review the privacy notes and avoid processing text you are not comfortable sending to OpenAI.</p>
+        </details>
+        <details>
+          <summary>Can I inspect the source?</summary>
+          <p>Yes. SpeedProof is released under the MIT License and the full Objective-C/AppKit source is available on GitHub.</p>
+        </details>
+      </div>
+    </section>
+
+    <section class="closing section">
+      <img src="/assets/app-icon.png" width="72" height="72" alt="SpeedProof lightning app icon">
+      <h2>Keep the thought.<br>Lose the typo.</h2>
+      <p>SpeedProof turns one shortcut into a cleaner message, then gets out of the way.</p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="/downloads/SpeedProof-v0.1.0-macOS.zip" download>Download for macOS</a>
+        <a class="button button-quiet" href="https://github.com/mshamrock/speedproof" target="_blank" rel="noreferrer">View source</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <a class="brand footer-brand" href="#top"><img src="/assets/app-icon.png" width="32" height="32" alt=""><span>Speed<span class="brand-proof">Proof</span></span></a>
+    <p>Built for macOS. Open source under the MIT License.</p>
+    <div><a href="https://github.com/mshamrock/speedproof/blob/main/PRIVACY.md">Privacy</a><a href="https://github.com/mshamrock/speedproof">GitHub</a></div>
+  </footer>
+
+  <script src="/script.js" defer></script>
+</body>
+</html>
+

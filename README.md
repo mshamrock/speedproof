@@ -3,6 +3,8 @@
 SpeedProof is a native macOS utility that improves and translates text directly
 from the clipboard.
 
+**Website and download:** [speedproof-umber.vercel.app](https://speedproof-umber.vercel.app)
+
 It can work quietly in the background after a regular copy, process the
 currently selected text with `Option+C`, or wait and paste the finished result
 back with `Option+V`. The app sends eligible text directly
@@ -57,6 +59,16 @@ local build. A personal signing identity named `SpeedProof Local` is used when
 available; otherwise the app receives an ad hoc signature. The signing setup is
 a one-time step that gives local rebuilds a stable identity, so macOS can retain
 Accessibility permission for Copy & Paste.
+
+To create a reproducible public build without accessing the local signing
+keychain, use:
+
+```bash
+SPEEDPROOF_USE_LOCAL_SIGNING=0 ./scripts/build_app.sh
+```
+
+The generated application is a universal macOS binary for Apple Silicon and
+Intel Macs.
 
 Because local builds are not notarized, macOS may ask you to confirm that you
 want to open the app.

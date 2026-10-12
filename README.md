@@ -3,7 +3,7 @@
 SpeedProof is a native macOS utility that improves and translates text directly
 from the clipboard.
 
-**Website and download:** [speedproof-umber.vercel.app](https://speedproof-umber.vercel.app)
+**Website and download:** [speedproof.mshamil.com](https://speedproof.mshamil.com)
 
 It can work quietly in the background after a regular copy, process the
 currently selected text with `Option+C`, or wait and paste the finished result

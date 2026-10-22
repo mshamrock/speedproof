@@ -10,6 +10,10 @@ currently selected text with `Option+C`, or wait and paste the finished result
 back with `Option+V`. The app sends eligible text directly
 to the OpenAI Responses API using the API key supplied by the user.
 
+The public website also includes a minimal same-language proofreader. Its
+serverless endpoint keeps the service API key out of the browser, applies basic
+sensitive-text checks, and does not intentionally persist submitted text.
+
 ## Highlights
 
 - Native AppKit interface for macOS 13 and newer.
@@ -122,13 +126,16 @@ The sensitive-text checks are safeguards, not a guarantee. Review the
 Sources/SpeedProof/main.m       AppKit app and OpenAI integration
 Resources/Info.plist            Application bundle metadata
 Resources/SpeedProof.icns       Application icon
+api/proofread.mjs               Serverless online proofreader
+site/                           Public landing page and web interface
 scripts/build_app.sh            Local build and signing
 scripts/setup_local_signing.sh  One-time stable local signing setup
 scripts/generate_app_icon.py    Icon asset generator
 ```
 
-SpeedProof intentionally has no backend server. OpenAI requests are sent
-directly from the Mac using the user's API key.
+The native app has no SpeedProof-operated backend: its OpenAI requests are sent
+directly from the Mac using the user's API key. The optional online proofreader
+uses a Vercel Function to protect the website's service API key.
 
 ## Contributing
 

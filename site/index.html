@@ -40,6 +40,7 @@
       <span class="version">v0.1.0</span>
     </a>
     <nav class="nav-links" aria-label="Page sections">
+      <a href="#try">Try online</a>
       <a href="#how">How it works</a>
       <a href="#privacy">Privacy</a>
       <a href="#install">Install</a>
@@ -62,10 +63,10 @@
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
             Download for macOS
           </a>
-          <button class="button button-quiet" type="button" data-run-demo>
-            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 5 8 7-8 7V5Z"/></svg>
-            See it work
-          </button>
+          <a class="button button-quiet" href="#try">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 9.8 9.8 3 12l6.8 2.2L12 21l2.2-6.8L21 12l-6.8-2.2L12 3Z"/></svg>
+            Try online
+          </a>
         </div>
         <p class="requirement">Requires macOS 13 or newer and your own OpenAI API key.</p>
       </div>
@@ -114,7 +115,59 @@
           </div>
         </div>
       </div>
-      <a class="scroll-cue" href="#how">Explore the workflow <span aria-hidden="true">↓</span></a>
+      <a class="scroll-cue" href="#try">Try it with your text <span aria-hidden="true">↓</span></a>
+    </section>
+
+    <section class="web-proofreader section" id="try" aria-labelledby="try-title">
+      <div class="proofreader-heading">
+        <div>
+          <p class="section-kicker">Try SpeedProof online</p>
+          <h2 id="try-title">Paste it rough.<br>Get it ready.</h2>
+        </div>
+        <p>Fix grammar, punctuation, and awkward phrasing in one pass. SpeedProof preserves the original language and meaning.</p>
+      </div>
+
+      <form class="web-tool" data-proofreader novalidate>
+        <div class="web-tool-bar">
+          <span class="web-tool-title"><i aria-hidden="true"></i> Online proofreader</span>
+          <span class="web-tool-status" data-proofread-status role="status" aria-live="polite">Ready</span>
+        </div>
+
+        <div class="web-tool-body">
+          <div class="web-pane web-pane-input">
+            <label for="proofread-input">Original text</label>
+            <textarea id="proofread-input" name="text" maxlength="4000" spellcheck="true" placeholder="Paste or type the text you want to improve…" data-proofread-input></textarea>
+            <div class="web-pane-footer">
+              <span data-character-count>0 / 4,000</span>
+              <button class="button button-primary web-submit" type="submit">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 9.8 9.8 3 12l6.8 2.2L12 21l2.2-6.8L21 12l-6.8-2.2L12 3Z"/></svg>
+                <span>Improve text</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="web-pane web-pane-result">
+            <div class="web-pane-label">
+              <span>Corrected text</span>
+              <button class="copy-result" type="button" data-copy-result disabled>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg>
+                <span>Copy</span>
+              </button>
+            </div>
+            <div class="web-output" data-proofread-output aria-live="polite">
+              <p class="web-output-placeholder">Your corrected version will appear here.</p>
+              <div class="web-output-loading" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+              <p class="web-output-result"></p>
+              <p class="web-output-error" role="alert"></p>
+            </div>
+            <div class="web-pane-footer web-result-footer">
+              <span>Same language. Same meaning. Cleaner writing.</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="web-tool-note">Your text is sent to OpenAI for this correction and is not stored by SpeedProof. Avoid pasting passwords, payment details, or confidential information.</p>
+      </form>
     </section>
 
     <section class="mechanism section" id="how">
@@ -180,7 +233,7 @@
       <div class="privacy-copy">
         <p class="section-kicker">Know where your text goes</p>
         <h2>No SpeedProof cloud. No mystery middleman.</h2>
-        <p>The app sends eligible text directly from your Mac to OpenAI using the API key you provide. SpeedProof has no operated backend, and your settings and recent history stay on your Mac.</p>
+        <p>The Mac app sends eligible text directly to OpenAI using the API key you provide. The online proofreader relays only the submitted text through a serverless SpeedProof endpoint so the service key stays private; SpeedProof does not store that text.</p>
         <a class="text-link" href="https://github.com/mshamrock/speedproof/blob/main/PRIVACY.md" target="_blank" rel="noreferrer">Read the full privacy notes <span aria-hidden="true">↗</span></a>
       </div>
       <div class="data-path" aria-label="Text data path">
@@ -229,7 +282,7 @@
         </details>
         <details>
           <summary>Is it safe for confidential text?</summary>
-          <p>Do not treat clipboard safeguards as a complete data-loss-prevention system. Review the privacy notes and avoid processing text you are not comfortable sending to OpenAI.</p>
+          <p>Do not treat the safeguards as a complete data-loss-prevention system. Both the Mac app and online proofreader send eligible text to OpenAI, so avoid processing anything you are not comfortable sharing with that service.</p>
         </details>
         <details>
           <summary>Can I inspect the source?</summary>

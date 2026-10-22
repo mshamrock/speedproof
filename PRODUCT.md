@@ -37,6 +37,12 @@ finished result back into the active field automatically.
 Text can be pasted or typed directly into SpeedProof. Typed text is processed
 after a short pause.
 
+### Online proofreader
+
+Visitors can paste or type text on the public website and receive a corrected
+version in the same language. The online surface intentionally omits language,
+tone, review, and history controls.
+
 ## Product principles
 
 1. Keep the copy-to-result loop fast.
@@ -61,12 +67,16 @@ after a short pause.
 - Local checks for likely credentials, private keys, tokens, encoded secrets,
   and payment card numbers.
 - Local skip for standalone email addresses.
+- Minimal same-language proofreader on the public website.
 
 ## Privacy boundary
 
-Eligible clipboard or manually entered text is sent directly to OpenAI. The app
-has no SpeedProof-operated backend. Local safety checks reduce accidental
-transmission of obvious secrets but cannot identify every sensitive value.
+Eligible clipboard or manually entered text in the native app is sent directly
+to OpenAI. The native app has no SpeedProof-operated backend. The public online
+proofreader relays submitted text through a serverless endpoint to keep its
+service API key private and does not intentionally persist source text or
+results. Local and server-side safety checks reduce accidental transmission of
+obvious secrets but cannot identify every sensitive value.
 
 See [PRIVACY.md](PRIVACY.md) for the user-facing data-flow description.
 
@@ -74,4 +84,5 @@ See [PRIVACY.md](PRIVACY.md) for the user-facing data-flow description.
 
 SpeedProof is written in Objective-C with AppKit and Carbon APIs. It is built by
 `scripts/build_app.sh` without an Xcode project and produces
-`.build/SpeedProof.app`.
+`.build/SpeedProof.app`. The public site is static HTML, CSS, and JavaScript with
+a Vercel Function for same-language proofreading.
